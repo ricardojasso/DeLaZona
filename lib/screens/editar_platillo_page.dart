@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -23,6 +24,20 @@ class _EditarPlatilloPageState extends State<EditarPlatilloPage> {
   late TextEditingController _precioCtrl;
   late TextEditingController _descripcionCtrl;
   
+  // 🔥 NUEVO: Lista de categorías predefinidas MUCHO MÁS GENERALES
+  final List<String> _categoriasDisponibles = [
+    'Entradas y Aperitivos',
+    'Platos Fuertes',
+    'Desayunos',
+    'Bebidas',
+    'Postres',
+    'Snacks y Botanas',
+    'Guarniciones o Extras',
+    'Especialidades',
+    'Otros'
+  ];
+  late String _categoriaSeleccionada; 
+  
   File? _nuevaFoto;
   String _fotoUrlExistente = '';
   bool _isLoading = false;
@@ -37,12 +52,66 @@ class _EditarPlatilloPageState extends State<EditarPlatilloPage> {
     _nombreCtrl = TextEditingController(text: widget.datosActuales['nombre']);
     _precioCtrl = TextEditingController(text: widget.datosActuales['precio'].toString());
     _descripcionCtrl = TextEditingController(text: widget.datosActuales['descripcion']);
+    
+    // 🔥 Verificamos si la categoría guardada existe en nuestra lista oficial. Si no, le asignamos "Otros"
+    String catGuardada = widget.datosActuales['categoria'] ?? 'Otros';
+    if (!_categoriasDisponibles.contains(catGuardada)) {
+      catGuardada = 'Otros';
+    }
+    _categoriaSeleccionada = catGuardada;
+    
     _fotoUrlExistente = widget.datosActuales['foto_url'] ?? '';
   }
 
-  Future<void> _seleccionarFoto() async {
+  void _mostrarOpcionesDeFoto() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Foto del Platillo', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: darkBlue)),
+                const SizedBox(height: 20),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: Colors.orange.shade50, shape: BoxShape.circle),
+                    child: const Icon(Icons.camera_alt_rounded, color: Color(0xFFF26B2A)),
+                  ),
+                  title: const Text('Tomar foto con la Cámara', style: TextStyle(fontWeight: FontWeight.bold)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _seleccionarFoto(ImageSource.camera);
+                  },
+                ),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: Colors.blue.shade50, shape: BoxShape.circle),
+                    child: const Icon(Icons.photo_library_rounded, color: Colors.blue),
+                  ),
+                  title: const Text('Elegir de la Galería', style: TextStyle(fontWeight: FontWeight.bold)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _seleccionarFoto(ImageSource.gallery);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    );
+  }
+
+  Future<void> _seleccionarFoto(ImageSource origen) async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    final pickedFile = await picker.pickImage(source: origen, imageQuality: 70);
     if (pickedFile != null) {
       setState(() => _nuevaFoto = File(pickedFile.path));
     }
@@ -70,6 +139,7 @@ class _EditarPlatilloPageState extends State<EditarPlatilloPage> {
         'nombre': _nombreCtrl.text.trim(),
         'descripcion': _descripcionCtrl.text.trim(),
         'precio': double.parse(_precioCtrl.text.trim()), 
+        'categoria': _categoriaSeleccionada, // 🔥 Guardamos la categoría del Dropdown
         'foto_url': urlFinal,
       });
 
@@ -91,7 +161,7 @@ class _EditarPlatilloPageState extends State<EditarPlatilloPage> {
       appBar: AppBar(
         backgroundColor: bgColor,
         elevation: 0,
-        toolbarHeight: 80, // AppBar más alto
+        toolbarHeight: 80,
         leading: Padding(
           padding: const EdgeInsets.only(left: 16.0, top: 12, bottom: 12),
           child: Container(
@@ -112,27 +182,33 @@ class _EditarPlatilloPageState extends State<EditarPlatilloPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // --- FOTO DEL PLATILLO GIGANTE ---
                 Center(
                   child: Stack(
                     alignment: Alignment.bottomRight,
                     children: [
                       Container(
-                        width: 160, height: 160, // Hecho más grande
+                        width: 160, height: 160,
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(45), // Bordes más redondos
+                          borderRadius: BorderRadius.circular(45),
                           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, 10))],
-                          image: _nuevaFoto != null 
-                            ? DecorationImage(image: FileImage(_nuevaFoto!), fit: BoxFit.cover) 
-                            : (_fotoUrlExistente.isNotEmpty ? DecorationImage(image: NetworkImage(_fotoUrlExistente), fit: BoxFit.cover) : null),
                         ),
-                        child: (_nuevaFoto == null && _fotoUrlExistente.isEmpty) 
-                          ? const Center(child: Text('🌮', style: TextStyle(fontSize: 50))) 
-                          : null,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(45),
+                          child: _nuevaFoto != null
+                              ? Image.file(_nuevaFoto!, fit: BoxFit.cover)
+                              : (_fotoUrlExistente.isNotEmpty
+                                  ? CachedNetworkImage(
+                                      imageUrl: _fotoUrlExistente,
+                                      fit: BoxFit.cover,
+                                      placeholder: (context, url) => Center(child: CircularProgressIndicator(color: orangeColor)),
+                                      errorWidget: (context, url, error) => const Center(child: Text('🌮', style: TextStyle(fontSize: 50))),
+                                    )
+                                  : const Center(child: Text('🌮', style: TextStyle(fontSize: 50)))),
+                        ),
                       ),
                       GestureDetector(
-                        onTap: _seleccionarFoto,
+                        onTap: _mostrarOpcionesDeFoto,
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(color: orangeColor, borderRadius: BorderRadius.circular(14), border: Border.all(color: bgColor, width: 3)),
@@ -144,13 +220,16 @@ class _EditarPlatilloPageState extends State<EditarPlatilloPage> {
                 ),
                 const SizedBox(height: 40),
 
-                // --- CAMPOS DE TEXTO ---
                 _buildLabel('NOMBRE DEL PLATILLO'),
                 _buildTextField(_nombreCtrl, Icons.restaurant),
                 
                 const SizedBox(height: 20),
                 _buildLabel('PRECIO (\$)'),
                 _buildTextField(_precioCtrl, Icons.attach_money, isNumber: true),
+
+                const SizedBox(height: 20),
+                _buildLabel('CATEGORÍA'),
+                _buildDropdownCategoria(), // 🔥 El nuevo selector elegante
                 
                 const SizedBox(height: 20),
                 _buildLabel('DESCRIPCIÓN'),
@@ -158,21 +237,19 @@ class _EditarPlatilloPageState extends State<EditarPlatilloPage> {
               ],
             ),
           ),
-      
-      // --- BOTÓN GIGANTE ANCLADO ABAJO ---
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24, top: 10),
           child: SizedBox(
             width: double.infinity,
-            height: 65, // Botón más grueso
+            height: 65,
             child: ElevatedButton.icon(
               onPressed: _isLoading ? null : _guardarCambios,
               icon: const Icon(Icons.check, color: Colors.white, size: 24),
               label: const Text('GUARDAR CAMBIOS', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 2.0, fontSize: 16)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: darkBlue,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)), // Más redondo
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                 elevation: 0,
               ),
             ),
@@ -189,6 +266,45 @@ class _EditarPlatilloPageState extends State<EditarPlatilloPage> {
     );
   }
 
+  // 🔥 NUEVO WIDGET Dropdown
+  Widget _buildDropdownCategoria() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 15, offset: const Offset(0, 5))],
+      ),
+      child: DropdownButtonFormField<String>(
+        value: _categoriaSeleccionada,
+        icon: Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey.shade400),
+        dropdownColor: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0F172A), fontSize: 16),
+        decoration: InputDecoration(
+          prefixIcon: Padding(
+            padding: const EdgeInsets.only(left: 20, right: 10),
+            child: Icon(Icons.category_rounded, color: const Color(0xFFF26B2A), size: 24),
+          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
+        ),
+        items: _categoriasDisponibles.map((String categoria) {
+          return DropdownMenuItem<String>(
+            value: categoria,
+            child: Text(categoria),
+          );
+        }).toList(),
+        onChanged: (String? nuevaCategoria) {
+          if (nuevaCategoria != null) {
+            setState(() {
+              _categoriaSeleccionada = nuevaCategoria;
+            });
+          }
+        },
+      ),
+    );
+  }
+
   Widget _buildTextField(TextEditingController controller, IconData icon, {bool isNumber = false, int maxLines = 1}) {
     return Container(
       decoration: BoxDecoration(
@@ -200,14 +316,14 @@ class _EditarPlatilloPageState extends State<EditarPlatilloPage> {
         controller: controller,
         keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
         maxLines: maxLines,
-        style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0F172A), fontSize: 16), // Letra más grande
+        style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0F172A), fontSize: 16),
         decoration: InputDecoration(
           prefixIcon: Padding(
             padding: const EdgeInsets.only(left: 20, right: 10),
             child: Icon(icon, color: const Color(0xFFF26B2A), size: 24),
           ),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22), // Input más alto
+          contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
         ),
       ),
     );

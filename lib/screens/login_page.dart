@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'registro_cliente_page.dart';
 import 'registro_restaurante_page.dart';
 import 'panel_restaurante_page.dart';
+import 'home_cliente_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -67,10 +68,10 @@ class _LoginPageState extends State<LoginPage> {
                 MaterialPageRoute(builder: (context) => const PanelRestaurantePage()),
               );
             } else if (rolUsuario == 'cliente') {
-              print("Falta crear la pantalla principal del cliente");
-              setState(() {
-                _isLoading = false;
-              });
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const HomeClientePage()),
+              );
             }
           }
         } else {

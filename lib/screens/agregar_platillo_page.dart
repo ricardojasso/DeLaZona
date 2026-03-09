@@ -17,6 +17,20 @@ class _AgregarPlatilloPageState extends State<AgregarPlatilloPage> {
   final _precioCtrl = TextEditingController();
   final _descripcionCtrl = TextEditingController();
   
+  // 🔥 NUEVO: Lista de categorías predefinidas MUCHO MÁS GENERALES
+  final List<String> _categoriasDisponibles = [
+    'Entradas y Aperitivos',
+    'Platos Fuertes',
+    'Desayunos',
+    'Bebidas',
+    'Postres',
+    'Snacks y Botanas',
+    'Guarniciones o Extras',
+    'Especialidades',
+    'Otros'
+  ];
+  String _categoriaSeleccionada = 'Platos Fuertes'; // Valor por defecto
+  
   File? _fotoPlatillo;
   bool _isLoading = false;
 
@@ -24,9 +38,55 @@ class _AgregarPlatilloPageState extends State<AgregarPlatilloPage> {
   final Color darkBlue = const Color(0xFF0F172A);
   final Color bgColor = const Color(0xFFF8F9FA);
 
-  Future<void> _seleccionarFoto() async {
+  void _mostrarOpcionesDeFoto() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Foto del Platillo', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: darkBlue)),
+                const SizedBox(height: 20),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: Colors.orange.shade50, shape: BoxShape.circle),
+                    child: const Icon(Icons.camera_alt_rounded, color: Color(0xFFF26B2A)),
+                  ),
+                  title: const Text('Tomar foto con la Cámara', style: TextStyle(fontWeight: FontWeight.bold)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _seleccionarFoto(ImageSource.camera);
+                  },
+                ),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: Colors.blue.shade50, shape: BoxShape.circle),
+                    child: const Icon(Icons.photo_library_rounded, color: Colors.blue),
+                  ),
+                  title: const Text('Elegir de la Galería', style: TextStyle(fontWeight: FontWeight.bold)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _seleccionarFoto(ImageSource.gallery);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    );
+  }
+
+  Future<void> _seleccionarFoto(ImageSource origen) async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    final pickedFile = await picker.pickImage(source: origen, imageQuality: 70);
     if (pickedFile != null) {
       setState(() => _fotoPlatillo = File(pickedFile.path));
     }
@@ -56,6 +116,7 @@ class _AgregarPlatilloPageState extends State<AgregarPlatilloPage> {
         'nombre': _nombreCtrl.text.trim(),
         'descripcion': _descripcionCtrl.text.trim(),
         'precio': double.parse(_precioCtrl.text.trim()), 
+        'categoria': _categoriaSeleccionada, // 🔥 Guardamos la opción elegida de la lista
         'foto_url': fotoUrl,
         'fecha_creacion': FieldValue.serverTimestamp(),
       });
@@ -114,7 +175,7 @@ class _AgregarPlatilloPageState extends State<AgregarPlatilloPage> {
                         child: _fotoPlatillo == null ? const Center(child: Icon(Icons.restaurant, size: 50, color: Color(0xFFD1D5DB))) : null,
                       ),
                       GestureDetector(
-                        onTap: _seleccionarFoto,
+                        onTap: _mostrarOpcionesDeFoto, 
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(color: orangeColor, borderRadius: BorderRadius.circular(14), border: Border.all(color: bgColor, width: 3)),
@@ -132,6 +193,10 @@ class _AgregarPlatilloPageState extends State<AgregarPlatilloPage> {
                 const SizedBox(height: 20),
                 _buildLabel('PRECIO (\$)'),
                 _buildTextField(_precioCtrl, Icons.attach_money, hint: 'Ej. 85.00', isNumber: true),
+
+                const SizedBox(height: 20),
+                _buildLabel('CATEGORÍA'),
+                _buildDropdownCategoria(), // 🔥 El nuevo selector elegante
                 
                 const SizedBox(height: 20),
                 _buildLabel('DESCRIPCIÓN'),
@@ -165,6 +230,45 @@ class _AgregarPlatilloPageState extends State<AgregarPlatilloPage> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12, left: 8),
       child: Text(text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2.0)),
+    );
+  }
+
+  // 🔥 NUEVO WIDGET: El menú desplegable (Dropdown) con el mismo estilo de los TextFields
+  Widget _buildDropdownCategoria() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 15, offset: const Offset(0, 5))],
+      ),
+      child: DropdownButtonFormField<String>(
+        value: _categoriaSeleccionada,
+        icon: Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey.shade400),
+        dropdownColor: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0F172A), fontSize: 16),
+        decoration: InputDecoration(
+          prefixIcon: Padding(
+            padding: const EdgeInsets.only(left: 20, right: 10),
+            child: Icon(Icons.category_rounded, color: const Color(0xFFF26B2A), size: 24),
+          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22), // Mismo alto que los TextFields
+        ),
+        items: _categoriasDisponibles.map((String categoria) {
+          return DropdownMenuItem<String>(
+            value: categoria,
+            child: Text(categoria),
+          );
+        }).toList(),
+        onChanged: (String? nuevaCategoria) {
+          if (nuevaCategoria != null) {
+            setState(() {
+              _categoriaSeleccionada = nuevaCategoria;
+            });
+          }
+        },
+      ),
     );
   }
 

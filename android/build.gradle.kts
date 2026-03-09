@@ -1,3 +1,17 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        // La antena para recibir mensajes de Google
+        classpath("com.google.gms:google-services:4.4.0")
+        
+        classpath("com.android.tools.build:gradle:8.1.0")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.0")
+    }
+}
+
 allprojects {
     repositories {
         google()
@@ -5,20 +19,17 @@ allprojects {
     }
 }
 
-val newBuildDir: Directory =
-    rootProject.layout.buildDirectory
-        .dir("../../build")
-        .get()
-rootProject.layout.buildDirectory.value(newBuildDir)
+// CORRECCIÓN: Usamos file() para convertir el texto en un objeto de archivo real
+rootProject.layout.buildDirectory.set(file("../build"))
 
 subprojects {
-    val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
-    project.layout.buildDirectory.value(newSubprojectBuildDir)
+    project.layout.buildDirectory.set(file("${rootProject.layout.buildDirectory.get()}/${project.name}"))
 }
+
 subprojects {
     project.evaluationDependsOn(":app")
 }
 
-tasks.register<Delete>("clean") {
+tasks.register("clean", Delete::class) {
     delete(rootProject.layout.buildDirectory)
-}
+} 

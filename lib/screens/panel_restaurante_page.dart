@@ -1,6 +1,8 @@
+import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'login_page.dart';
 import 'perfil_restaurante_page.dart';
@@ -16,8 +18,6 @@ class PanelRestaurantePage extends StatefulWidget {
 
 class _PanelRestaurantePageState extends State<PanelRestaurantePage> {
   final String _uid = FirebaseAuth.instance.currentUser!.uid;
-  String _nombre = 'Cargando...';
-  bool _isAbierto = true;
 
   final Color orangeColor = const Color(0xFFF26B2A);
   final Color darkBlue = const Color(0xFF0F172A);
@@ -25,18 +25,36 @@ class _PanelRestaurantePageState extends State<PanelRestaurantePage> {
   @override
   void initState() {
     super.initState();
-    _cargarDatosRestaurante();
+    _configurarNotificacionesPush(); 
   }
 
-  Future<void> _cargarDatosRestaurante() async {
+  // NOTIFICACIONES PUSH (Para que sigan llegando al celular)
+  Future<void> _configurarNotificacionesPush() async {
     try {
-      DocumentSnapshot doc = await FirebaseFirestore.instance.collection('restaurantes').doc(_uid).get();
-      if (doc.exists && mounted) {
-        setState(() {
-          _nombre = doc['nombre_restaurante'] ?? 'Mi Restaurante';
-        });
+      var status = await Permission.notification.status;
+      if (status.isDenied) {
+        status = await Permission.notification.request();
       }
-    } catch (e) {}
+
+      if (status.isGranted) {
+        debugPrint('✅ Permiso concedido por el usuario');
+        
+        FirebaseMessaging messaging = FirebaseMessaging.instance;
+        
+        String? token = await messaging.getToken();
+        
+        if (token != null) {
+          debugPrint('🔥 Mi FCM Token es: $token');
+          await FirebaseFirestore.instance.collection('restaurantes').doc(_uid).set({
+            'fcm_token': token,
+          }, SetOptions(merge: true));
+        }
+      } else {
+        debugPrint('❌ El usuario rechazó el permiso');
+      }
+    } catch (e) {
+      debugPrint("Error configurando Push: $e");
+    }
   }
 
   Future<void> _cerrarSesion() async {
@@ -52,110 +70,149 @@ class _PanelRestaurantePageState extends State<PanelRestaurantePage> {
         child: Column(
           children: [
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 30.0), // Más margen
-                child: Column(
-                  children: [
-                    // --- CABECERA ---
-                    Row(
+              child: StreamBuilder<DocumentSnapshot>(
+                stream: FirebaseFirestore.instance.collection('restaurantes').doc(_uid).snapshots(),
+                builder: (context, snapshot) {
+                  
+                  String nombre = "Cargando...";
+                  String fotoPerfil = "";
+                  bool isAbierto = true; 
+                  String totalSeguidores = "0";
+                  String totalWhatsApps = "0";
+
+                  if (snapshot.hasData && snapshot.data!.exists) {
+                    var data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
+                    nombre = data['nombre_restaurante'] ?? 'Mi Restaurante';
+                    fotoPerfil = data['foto_perfil'] ?? '';
+                    isAbierto = data['is_abierto'] ?? true; 
+                    List<dynamic> seguidores = data['seguidores'] ?? [];
+                    totalSeguidores = seguidores.length.toString();
+                    totalWhatsApps = (data['clics_whatsapp'] ?? 0).toString();
+                  }
+
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 30.0), 
+                    child: Column(
                       children: [
-                        Container(
-                          width: 60, height: 60, // Avatar más grande
-                          decoration: BoxDecoration(color: orangeColor, shape: BoxShape.circle, boxShadow: [BoxShadow(color: orangeColor.withOpacity(0.4), blurRadius: 10, offset: const Offset(0, 4))]),
-                          child: const Center(child: Text('🔥', style: TextStyle(fontSize: 30))),
+                        Row(
+                          children: [
+                            Container(
+                              width: 60, height: 60, 
+                              decoration: BoxDecoration(
+                                color: orangeColor, 
+                                shape: BoxShape.circle, 
+                                boxShadow: [BoxShadow(color: orangeColor.withOpacity(0.4), blurRadius: 10, offset: const Offset(0, 4))]
+                              ),
+                              child: fotoPerfil.isNotEmpty
+                                  ? ClipOval(
+                                      child: Image.network(
+                                        fotoPerfil,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (c, e, s) => const Center(child: Text('🔥', style: TextStyle(fontSize: 30))),
+                                      ),
+                                    )
+                                  : const Center(child: Text('🔥', style: TextStyle(fontSize: 30))),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(nombre, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic, color: Color(0xFF0F172A))),
+                                  const SizedBox(height: 2),
+                                  const Text('ADMINISTRADOR', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey, letterSpacing: 1.5)),
+                                ],
+                              ),
+                            ),
+                            
+                            // 🔥 Aquí estaba la campana, ahora solo está el botón de ajustes 🔥
+                            GestureDetector(
+                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PerfilRestaurantePage())),
+                              child: Container(
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.grey.shade200)),
+                                child: Icon(Icons.settings_outlined, color: Colors.grey.shade600, size: 24),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        const SizedBox(height: 32),
+
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                          decoration: BoxDecoration(color: isAbierto ? const Color(0xFFE8F8F0) : Colors.red.shade50, borderRadius: BorderRadius.circular(35)),
+                          child: Row(
                             children: [
-                              Text(_nombre, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic, color: Color(0xFF0F172A))),
-                              const SizedBox(height: 2),
-                              const Text('ADMINISTRADOR', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey, letterSpacing: 1.5)),
+                              Container(width: 12, height: 12, decoration: BoxDecoration(color: isAbierto ? Colors.green : Colors.red, shape: BoxShape.circle)),
+                              const SizedBox(width: 14),
+                              Text(isAbierto ? 'Abierto' : 'Cerrado', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic, color: isAbierto ? Colors.green.shade800 : Colors.red.shade800)),
+                              const Spacer(),
+                              Switch(
+                                value: isAbierto, 
+                                activeColor: Colors.green, 
+                                onChanged: (val) {
+                                  FirebaseFirestore.instance.collection('restaurantes').doc(_uid).update({
+                                    'is_abierto': val
+                                  });
+                                }
+                              ),
                             ],
                           ),
                         ),
-                        GestureDetector(
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PerfilRestaurantePage())),
-                          child: Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.grey.shade200)),
-                            child: Icon(Icons.settings_outlined, color: Colors.grey.shade600, size: 24),
+                        const SizedBox(height: 32),
+
+                        Container(
+                          padding: const EdgeInsets.all(30),
+                          decoration: BoxDecoration(
+                            color: darkBlue,
+                            borderRadius: BorderRadius.circular(35),
+                            boxShadow: [BoxShadow(color: darkBlue.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10))],
                           ),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('ACTIVIDAD DE HOY', style: TextStyle(color: orangeColor, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 2.0)),
+                                  Icon(Icons.trending_up, color: orangeColor, size: 20),
+                                ],
+                              ),
+                              const SizedBox(height: 24),
+                              Row(
+                                children: [
+                                  Expanded(child: _buildStatItem(totalSeguidores, 'SEGUIDORES')),
+                                  const SizedBox(width: 20),
+                                  Expanded(child: _buildStatItem(totalWhatsApps, 'WHATSAPPS')),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 40),
+
+                        _buildNavButton(
+                          title: 'Gestionar Menú', 
+                          subtitle: 'PLATILLOS Y PRECIOS', 
+                          icon: Icons.local_pizza_outlined, 
+                          iconColor: orangeColor,
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MenuRestaurantePage()))
+                        ),
+                        const SizedBox(height: 20),
+                        
+                        _buildNavButton(
+                          title: 'Publicar Oferta', 
+                          subtitle: 'PROMO RELÁMPAGO', 
+                          icon: Icons.local_offer_outlined, 
+                          iconColor: Colors.blue.shade400,
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PublicarOfertaPage()))
                         ),
                       ],
                     ),
-                    const SizedBox(height: 32),
-
-                    // --- SWITCH ---
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16), // Más grande
-                      decoration: BoxDecoration(color: _isAbierto ? const Color(0xFFE8F8F0) : Colors.red.shade50, borderRadius: BorderRadius.circular(35)),
-                      child: Row(
-                        children: [
-                          Container(width: 12, height: 12, decoration: BoxDecoration(color: _isAbierto ? Colors.green : Colors.red, shape: BoxShape.circle)),
-                          const SizedBox(width: 14),
-                          Text(_isAbierto ? 'Abierto' : 'Cerrado', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic, color: _isAbierto ? Colors.green.shade800 : Colors.red.shade800)),
-                          const Spacer(),
-                          Switch(value: _isAbierto, activeColor: Colors.green, onChanged: (val) => setState(() => _isAbierto = val)),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-
-                    // --- TARJETA AZUL OSCURO ---
-                    Container(
-                      padding: const EdgeInsets.all(30), // Más acolchado
-                      decoration: BoxDecoration(
-                        color: darkBlue,
-                        borderRadius: BorderRadius.circular(35),
-                        boxShadow: [BoxShadow(color: darkBlue.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10))],
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('ACTIVIDAD DE HOY', style: TextStyle(color: orangeColor, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 2.0)),
-                              Icon(Icons.trending_up, color: orangeColor, size: 20),
-                            ],
-                          ),
-                          const SizedBox(height: 24),
-                          Row(
-                            children: [
-                              Expanded(child: _buildStatItem('1.2k', 'VISTAS')),
-                              const SizedBox(width: 20),
-                              Expanded(child: _buildStatItem('84', 'WHATSAPPS')),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 40),
-
-                    // --- BOTONES DE NAVEGACIÓN ---
-                    _buildNavButton(
-                      title: 'Gestionar Menú', 
-                      subtitle: 'PLATILLOS Y PRECIOS', 
-                      icon: Icons.local_pizza_outlined, 
-                      iconColor: orangeColor,
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MenuRestaurantePage()))
-                    ),
-                    const SizedBox(height: 20),
-                    
-                    _buildNavButton(
-                      title: 'Publicar Oferta', 
-                      subtitle: 'PROMO RELÁMPAGO', 
-                      icon: Icons.local_offer_outlined, 
-                      iconColor: Colors.blue.shade400,
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PublicarOfertaPage()))
-                    ),
-                  ],
-                ),
+                  );
+                }
               ),
             ),
             
-            // --- CERRAR SESIÓN ---
             Padding(
               padding: const EdgeInsets.only(bottom: 30.0, top: 10),
               child: TextButton.icon(

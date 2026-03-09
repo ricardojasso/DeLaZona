@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -54,9 +55,57 @@ class _PerfilRestaurantePageState extends State<PerfilRestaurantePage> {
     }
   }
 
-  Future<void> _seleccionarFoto() async {
+  // 🔥 NUEVO: Menú para elegir entre Cámara o Galería 🔥
+  void _mostrarOpcionesDeFoto() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Actualizar foto de perfil', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: darkBlue)),
+                const SizedBox(height: 20),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: Colors.orange.shade50, shape: BoxShape.circle),
+                    child: const Icon(Icons.camera_alt_rounded, color: Color(0xFFF26B2A)),
+                  ),
+                  title: const Text('Tomar foto con la Cámara', style: TextStyle(fontWeight: FontWeight.bold)),
+                  onTap: () {
+                    Navigator.pop(context); // Cierra el menú
+                    _seleccionarFoto(ImageSource.camera); // Abre la cámara
+                  },
+                ),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: Colors.blue.shade50, shape: BoxShape.circle),
+                    child: const Icon(Icons.photo_library_rounded, color: Colors.blue),
+                  ),
+                  title: const Text('Elegir de la Galería', style: TextStyle(fontWeight: FontWeight.bold)),
+                  onTap: () {
+                    Navigator.pop(context); // Cierra el menú
+                    _seleccionarFoto(ImageSource.gallery); // Abre la galería
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    );
+  }
+
+  // Ahora recibe el origen (Cámara o Galería) como parámetro
+  Future<void> _seleccionarFoto(ImageSource origen) async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    final pickedFile = await picker.pickImage(source: origen, imageQuality: 70);
     if (pickedFile != null) {
       setState(() {
         _nuevaFoto = File(pickedFile.path);
@@ -133,14 +182,23 @@ class _PerfilRestaurantePageState extends State<PerfilRestaurantePage> {
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(45),
                             boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, 10))],
-                            image: _nuevaFoto != null 
-                              ? DecorationImage(image: FileImage(_nuevaFoto!), fit: BoxFit.cover)
-                              : (_fotoUrl.isNotEmpty ? DecorationImage(image: NetworkImage(_fotoUrl), fit: BoxFit.cover) : null),
                           ),
-                          child: (_nuevaFoto == null && _fotoUrl.isEmpty) ? const Center(child: Text('🔥', style: TextStyle(fontSize: 50))) : null,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(45),
+                            child: _nuevaFoto != null
+                                ? Image.file(_nuevaFoto!, fit: BoxFit.cover)
+                                : (_fotoUrl.isNotEmpty
+                                    ? CachedNetworkImage(
+                                        imageUrl: _fotoUrl,
+                                        fit: BoxFit.cover,
+                                        placeholder: (context, url) => Center(child: CircularProgressIndicator(color: orangeColor)),
+                                        errorWidget: (context, url, error) => const Center(child: Text('🔥', style: TextStyle(fontSize: 50))),
+                                      )
+                                    : const Center(child: Text('🔥', style: TextStyle(fontSize: 50)))),
+                          ),
                         ),
                         GestureDetector(
-                          onTap: _seleccionarFoto,
+                          onTap: _mostrarOpcionesDeFoto, // 🔥 Cambiado para abrir el menú
                           child: Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(color: orangeColor, borderRadius: BorderRadius.circular(14), border: Border.all(color: bgColor, width: 3)),
