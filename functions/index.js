@@ -7,8 +7,6 @@ if (!admin.apps.length) {
 
 // ============================================================================
 // ROBOT 1: Notifica al Restaurante cuando tiene un nuevo seguidor (¡GATILLO INSTANTÁNEO!)
-// ============================================================================
-// Ahora vigila directamente si cambió la lista de seguidores del restaurante
 exports.enviarNotificacionNuevoSeguidor = onDocumentUpdated("restaurantes/{restauranteId}", async (event) => {
   const antes = event.data.before.data();
   const despues = event.data.after.data();
@@ -59,7 +57,6 @@ exports.enviarNotificacionNuevoSeguidor = onDocumentUpdated("restaurantes/{resta
 
 // ============================================================================
 // ROBOT 2: Notifica a los Clientes cuando el restaurante abre o cierra
-// ============================================================================
 exports.notificarCambioEstadoRestaurante = onDocumentUpdated("restaurantes/{restauranteId}", async (event) => {
   const antes = event.data.before.data();
   const despues = event.data.after.data();
@@ -120,8 +117,7 @@ exports.notificarCambioEstadoRestaurante = onDocumentUpdated("restaurantes/{rest
 });
 
 // ============================================================================
-// ROBOT 3: Notifica a los Clientes cuando hay un NUEVO PLATILLO 🌮🍕
-// ============================================================================
+// ROBOT 3: Notifica a los Clientes cuando hay un NUEVO PLATILLO 
 exports.notificarNuevoPlatillo = onDocumentCreated("platillos/{platilloId}", async (event) => {
   const snapshot = event.data;
   if (!snapshot) return null;
@@ -182,8 +178,7 @@ exports.notificarNuevoPlatillo = onDocumentCreated("platillos/{platilloId}", asy
 });
 
 // ============================================================================
-// ROBOT 4: Notifica a los Clientes sobre una NUEVA PROMOCIÓN 💸🔥
-// ============================================================================
+// ROBOT 4: Notifica a los Clientes sobre una NUEVA PROMOCIÓN 
 exports.notificarNuevaPromocion = onDocumentUpdated("restaurantes/{restauranteId}", async (event) => {
   const antes = event.data.before.data();
   const despues = event.data.after.data();

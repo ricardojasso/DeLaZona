@@ -1,30 +1,23 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
-class EditarPlatilloPage extends StatefulWidget {
-  final String idPlatillo;
-  final Map<String, dynamic> datosActuales;
-
-  const EditarPlatilloPage({
-    super.key, 
-    required this.idPlatillo, 
-    required this.datosActuales
-  });
+class AgregarPlatilloPage extends StatefulWidget {
+  const AgregarPlatilloPage({super.key});
 
   @override
-  State<EditarPlatilloPage> createState() => _EditarPlatilloPageState();
+  State<AgregarPlatilloPage> createState() => _AgregarPlatilloPageState();
 }
 
-class _EditarPlatilloPageState extends State<EditarPlatilloPage> {
-  late TextEditingController _nombreCtrl;
-  late TextEditingController _precioCtrl;
-  late TextEditingController _descripcionCtrl;
+class _AgregarPlatilloPageState extends State<AgregarPlatilloPage> {
+  final _nombreCtrl = TextEditingController();
+  final _precioCtrl = TextEditingController();
+  final _descripcionCtrl = TextEditingController();
   
-  // 🔥 NUEVO: Lista de categorías predefinidas MUCHO MÁS GENERALES
+  
   final List<String> _categoriasDisponibles = [
     'Entradas y Aperitivos',
     'Platos Fuertes',
@@ -36,32 +29,14 @@ class _EditarPlatilloPageState extends State<EditarPlatilloPage> {
     'Especialidades',
     'Otros'
   ];
-  late String _categoriaSeleccionada; 
+  String _categoriaSeleccionada = 'Platos Fuertes'; 
   
-  File? _nuevaFoto;
-  String _fotoUrlExistente = '';
+  File? _fotoPlatillo;
   bool _isLoading = false;
 
   final Color orangeColor = const Color(0xFFF26B2A);
   final Color darkBlue = const Color(0xFF0F172A);
   final Color bgColor = const Color(0xFFF8F9FA);
-
-  @override
-  void initState() {
-    super.initState();
-    _nombreCtrl = TextEditingController(text: widget.datosActuales['nombre']);
-    _precioCtrl = TextEditingController(text: widget.datosActuales['precio'].toString());
-    _descripcionCtrl = TextEditingController(text: widget.datosActuales['descripcion']);
-    
-    // 🔥 Verificamos si la categoría guardada existe en nuestra lista oficial. Si no, le asignamos "Otros"
-    String catGuardada = widget.datosActuales['categoria'] ?? 'Otros';
-    if (!_categoriasDisponibles.contains(catGuardada)) {
-      catGuardada = 'Otros';
-    }
-    _categoriaSeleccionada = catGuardada;
-    
-    _fotoUrlExistente = widget.datosActuales['foto_url'] ?? '';
-  }
 
   void _mostrarOpcionesDeFoto() {
     showModalBottomSheet(
@@ -113,38 +88,41 @@ class _EditarPlatilloPageState extends State<EditarPlatilloPage> {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: origen, imageQuality: 70);
     if (pickedFile != null) {
-      setState(() => _nuevaFoto = File(pickedFile.path));
+      setState(() => _fotoPlatillo = File(pickedFile.path));
     }
   }
 
-  Future<void> _guardarCambios() async {
+  Future<void> _crearPlatillo() async {
     if (_nombreCtrl.text.isEmpty || _precioCtrl.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nombre y precio obligatorios'), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Llena el nombre y el precio'), backgroundColor: Colors.red));
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      String urlFinal = _fotoUrlExistente;
+      String uidUsuario = FirebaseAuth.instance.currentUser!.uid;
+      String idPlatilloUnico = DateTime.now().millisecondsSinceEpoch.toString(); 
+      String fotoUrl = '';
       
-      if (_nuevaFoto != null) {
-        String uidUsuario = widget.datosActuales['id_restaurante'];
-        final storageRef = FirebaseStorage.instance.ref().child('fotos_platillos').child('$uidUsuario-${widget.idPlatillo}.jpg');
-        await storageRef.putFile(_nuevaFoto!);
-        urlFinal = await storageRef.getDownloadURL();
+      if (_fotoPlatillo != null) {
+        final storageRef = FirebaseStorage.instance.ref().child('fotos_platillos').child('$uidUsuario-$idPlatilloUnico.jpg');
+        await storageRef.putFile(_fotoPlatillo!);
+        fotoUrl = await storageRef.getDownloadURL();
       }
 
-      await FirebaseFirestore.instance.collection('platillos').doc(widget.idPlatillo).update({
+      await FirebaseFirestore.instance.collection('platillos').add({
+        'id_restaurante': uidUsuario, 
         'nombre': _nombreCtrl.text.trim(),
         'descripcion': _descripcionCtrl.text.trim(),
         'precio': double.parse(_precioCtrl.text.trim()), 
-        'categoria': _categoriaSeleccionada, // 🔥 Guardamos la categoría del Dropdown
-        'foto_url': urlFinal,
+        'categoria': _categoriaSeleccionada, // 🔥 Guardamos la opción elegida de la lista
+        'foto_url': fotoUrl,
+        'fecha_creacion': FieldValue.serverTimestamp(),
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Platillo actualizado'), backgroundColor: Colors.green));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Platillo creado con éxito'), backgroundColor: Colors.green));
         Navigator.pop(context); 
       }
     } catch (e) {
@@ -172,7 +150,7 @@ class _EditarPlatilloPageState extends State<EditarPlatilloPage> {
             ),
           ),
         ),
-        title: Text('Editar Platillo', style: TextStyle(color: darkBlue, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic, fontSize: 26)),
+        title: Text('Añadir Platillo', style: TextStyle(color: darkBlue, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic, fontSize: 26)),
         centerTitle: false,
       ),
       body: _isLoading 
@@ -192,23 +170,12 @@ class _EditarPlatilloPageState extends State<EditarPlatilloPage> {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(45),
                           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, 10))],
+                          image: _fotoPlatillo != null ? DecorationImage(image: FileImage(_fotoPlatillo!), fit: BoxFit.cover) : null,
                         ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(45),
-                          child: _nuevaFoto != null
-                              ? Image.file(_nuevaFoto!, fit: BoxFit.cover)
-                              : (_fotoUrlExistente.isNotEmpty
-                                  ? CachedNetworkImage(
-                                      imageUrl: _fotoUrlExistente,
-                                      fit: BoxFit.cover,
-                                      placeholder: (context, url) => Center(child: CircularProgressIndicator(color: orangeColor)),
-                                      errorWidget: (context, url, error) => const Center(child: Text('🌮', style: TextStyle(fontSize: 50))),
-                                    )
-                                  : const Center(child: Text('🌮', style: TextStyle(fontSize: 50)))),
-                        ),
+                        child: _fotoPlatillo == null ? const Center(child: Icon(Icons.restaurant, size: 50, color: Color(0xFFD1D5DB))) : null,
                       ),
                       GestureDetector(
-                        onTap: _mostrarOpcionesDeFoto,
+                        onTap: _mostrarOpcionesDeFoto, 
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(color: orangeColor, borderRadius: BorderRadius.circular(14), border: Border.all(color: bgColor, width: 3)),
@@ -221,11 +188,11 @@ class _EditarPlatilloPageState extends State<EditarPlatilloPage> {
                 const SizedBox(height: 40),
 
                 _buildLabel('NOMBRE DEL PLATILLO'),
-                _buildTextField(_nombreCtrl, Icons.restaurant),
+                _buildTextField(_nombreCtrl, Icons.restaurant, hint: 'Ej. Tacos al Pastor x5'),
                 
                 const SizedBox(height: 20),
                 _buildLabel('PRECIO (\$)'),
-                _buildTextField(_precioCtrl, Icons.attach_money, isNumber: true),
+                _buildTextField(_precioCtrl, Icons.attach_money, hint: 'Ej. 85.00', isNumber: true),
 
                 const SizedBox(height: 20),
                 _buildLabel('CATEGORÍA'),
@@ -233,7 +200,7 @@ class _EditarPlatilloPageState extends State<EditarPlatilloPage> {
                 
                 const SizedBox(height: 20),
                 _buildLabel('DESCRIPCIÓN'),
-                _buildTextField(_descripcionCtrl, Icons.notes_rounded, maxLines: 4),
+                _buildTextField(_descripcionCtrl, Icons.notes_rounded, hint: 'Ej. Con piña, cebolla...', maxLines: 4),
               ],
             ),
           ),
@@ -244,9 +211,9 @@ class _EditarPlatilloPageState extends State<EditarPlatilloPage> {
             width: double.infinity,
             height: 65,
             child: ElevatedButton.icon(
-              onPressed: _isLoading ? null : _guardarCambios,
+              onPressed: _isLoading ? null : _crearPlatillo,
               icon: const Icon(Icons.check, color: Colors.white, size: 24),
-              label: const Text('GUARDAR CAMBIOS', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 2.0, fontSize: 16)),
+              label: const Text('CREAR PLATILLO', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 2.0, fontSize: 16)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: darkBlue,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -266,7 +233,7 @@ class _EditarPlatilloPageState extends State<EditarPlatilloPage> {
     );
   }
 
-  // 🔥 NUEVO WIDGET Dropdown
+  // 🔥 NUEVO WIDGET: El menú desplegable (Dropdown) con el mismo estilo de los TextFields
   Widget _buildDropdownCategoria() {
     return Container(
       decoration: BoxDecoration(
@@ -286,7 +253,7 @@ class _EditarPlatilloPageState extends State<EditarPlatilloPage> {
             child: Icon(Icons.category_rounded, color: const Color(0xFFF26B2A), size: 24),
           ),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22), // Mismo alto que los TextFields
         ),
         items: _categoriasDisponibles.map((String categoria) {
           return DropdownMenuItem<String>(
@@ -305,7 +272,7 @@ class _EditarPlatilloPageState extends State<EditarPlatilloPage> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, IconData icon, {bool isNumber = false, int maxLines = 1}) {
+  Widget _buildTextField(TextEditingController controller, IconData icon, {String hint = '', bool isNumber = false, int maxLines = 1}) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -318,6 +285,8 @@ class _EditarPlatilloPageState extends State<EditarPlatilloPage> {
         maxLines: maxLines,
         style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0F172A), fontSize: 16),
         decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(color: Colors.grey.shade300, fontWeight: FontWeight.normal),
           prefixIcon: Padding(
             padding: const EdgeInsets.only(left: 20, right: 10),
             child: Icon(icon, color: const Color(0xFFF26B2A), size: 24),

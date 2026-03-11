@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'detalle_restaurante_page.dart'; 
-import 'login_page.dart'; 
+import '../auth/login_page.dart'; 
 
 class HomeClientePage extends StatefulWidget {
   const HomeClientePage({super.key});
@@ -191,20 +191,20 @@ class _HomeClientePageState extends State<HomeClientePage> {
                         if (promocion.isNotEmpty && fechaFin != null && fechaInicio != null) {
                           DateTime ahora = DateTime.now();
                           
-                          // Ajustamos el inicio a las 00:00 del primer día
+                          
                           DateTime inicio = fechaInicio.toDate();
                           inicio = DateTime(inicio.year, inicio.month, inicio.day, 0, 0, 0);
                           
-                          // Ajustamos el fin a las 23:59 del último día
+                          
                           DateTime fin = fechaFin.toDate();
                           fin = DateTime(fin.year, fin.month, fin.day, 23, 59, 59);
 
-                          // Si hoy es ANTES de que empiece, o DESPUÉS de que termine, borramos el texto
+                          
                           if (ahora.isBefore(inicio) || ahora.isAfter(fin)) {
                             promocion = ''; 
                           }
                         }
-                        // ---------------------------------------------
+                        
                         
                         String tituloGigante = nombre.split(' ')[0].toUpperCase();
                         Color colorTarjeta = _cardColors[index % _cardColors.length];

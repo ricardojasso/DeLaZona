@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
-import 'login_page.dart';
+import '../auth/login_page.dart';
 import 'perfil_restaurante_page.dart';
 import 'menu_restaurante_page.dart';
 import 'publicar_oferta_page.dart';

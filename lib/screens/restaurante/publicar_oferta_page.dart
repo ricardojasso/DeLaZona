@@ -24,8 +24,8 @@ class _PublicarOfertaPageState extends State<PublicarOfertaPage> {
   Future<void> _seleccionarFechas() async {
     DateTimeRange? rango = await showDateRangePicker(
       context: context,
-      firstDate: DateTime.now(), // No pueden elegir días en el pasado
-      lastDate: DateTime.now().add(const Duration(days: 365)), // Hasta 1 año
+      firstDate: DateTime.now(), 
+      lastDate: DateTime.now().add(const Duration(days: 365)), 
       helpText: 'Selecciona la duración de la oferta',
       cancelText: 'CANCELAR',
       confirmText: 'GUARDAR',

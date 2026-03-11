@@ -6,9 +6,9 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 // Eliminamos el import de permission_handler de aquí ya que no lo usaremos al inicio
 
 import 'firebase_options.dart'; 
-import 'screens/login_page.dart';
-import 'screens/panel_restaurante_page.dart';
-import 'screens/home_cliente_page.dart';
+import 'screens/auth/login_page.dart';
+import 'screens/restaurante/panel_restaurante_page.dart';
+import 'screens/cliente/home_cliente_page.dart';
 
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 

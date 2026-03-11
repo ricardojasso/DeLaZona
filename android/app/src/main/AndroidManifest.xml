@@ -13,8 +13,7 @@
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
         
-        <!-- 🚨 LA LLAVE MAESTRA QUE FALTABA PARA ANDROID 11+ 🚨 -->
-        <!-- Obliga a Android a usar un canal de alta importancia (hace que vibre y suene) -->
+
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="high_importance_channel" />

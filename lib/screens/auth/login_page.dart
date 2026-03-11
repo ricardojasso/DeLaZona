@@ -3,8 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'registro_cliente_page.dart';
 import 'registro_restaurante_page.dart';
-import 'panel_restaurante_page.dart';
-import 'home_cliente_page.dart';
+import '../restaurante/panel_restaurante_page.dart';
+import '../cliente/home_cliente_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
