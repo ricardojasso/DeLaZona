@@ -3,12 +3,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart'; 
-// Eliminamos el import de permission_handler de aquí ya que no lo usaremos al inicio
 
 import 'firebase_options.dart'; 
 import 'screens/auth/login_page.dart';
 import 'screens/restaurante/panel_restaurante_page.dart';
 import 'screens/cliente/home_cliente_page.dart';
+import 'screens/admin/admin_panel_page.dart'; // Importamos tu nuevo Panel Maestro
 
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
@@ -49,7 +49,7 @@ void main() async {
     sound: true,
   );
 
-  // 1. Aquí se pide el permiso de NOTIFICACIONES antes de cargar la app (Este sí lo dejamos)
+  // Pedir permiso de NOTIFICACIONES
   FirebaseMessaging messaging = FirebaseMessaging.instance;
   await messaging.requestPermission(
     alert: true,
@@ -104,7 +104,6 @@ class DeLaZonaApp extends StatelessWidget {
   }
 }
 
-// Convertimos de vuelta a StatelessWidget ya que no necesitamos el initState aquí
 class EnrutadorPrincipal extends StatelessWidget {
   const EnrutadorPrincipal({super.key});
 
@@ -120,35 +119,60 @@ class EnrutadorPrincipal extends StatelessWidget {
         if (snapshot.hasData) {
           final String uid = snapshot.data!.uid;
 
+          // 🔥 NIVEL 1: ¿Es Administrador Maestro? (Opción B)
           return FutureBuilder<DocumentSnapshot>(
-            future: FirebaseFirestore.instance.collection('restaurantes').doc(uid).get(),
-            builder: (context, restauranteSnapshot) {
-              if (restauranteSnapshot.connectionState == ConnectionState.waiting) {
-                 return const Scaffold(body: Center(child: CircularProgressIndicator(color: Color(0xFFF26B2A))));
+            future: FirebaseFirestore.instance.collection('usuarios_roles').doc(uid).get(),
+            builder: (context, roleSnapshot) {
+              if (roleSnapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(body: Center(child: CircularProgressIndicator(color: Color(0xFFF26B2A))));
               }
 
-              if (restauranteSnapshot.hasData && restauranteSnapshot.data!.exists) {
-                _guardarTokenEnBaseDeDatos(uid, 'restaurantes');
-                return const PanelRestaurantePage();
-              } else {
-                return FutureBuilder<DocumentSnapshot>(
-                  future: FirebaseFirestore.instance.collection('clientes').doc(uid).get(),
-                  builder: (context, clienteSnapshot) {
-                     if (clienteSnapshot.connectionState == ConnectionState.waiting) {
-                        return const Scaffold(body: Center(child: CircularProgressIndicator(color: Color(0xFFF26B2A))));
-                     }
-                     if (clienteSnapshot.hasData && clienteSnapshot.data!.exists) {
-                        _guardarTokenEnBaseDeDatos(uid, 'clientes');
-                        return const HomeClientePage();
-                     } else {
-                        return const LoginPage(); 
-                     }
-                  },
-                );
+              if (roleSnapshot.hasData && roleSnapshot.data!.exists) {
+                var data = roleSnapshot.data!.data() as Map<String, dynamic>;
+                if (data['role'] == 'admin') {
+                  // Si eres admin, no guardamos token de restaurante/cliente, solo entras
+                  return const AdminPanelPage();
+                }
               }
+
+              // 🔥 NIVEL 2: Si no es admin, ¿Es Restaurante?
+              return FutureBuilder<DocumentSnapshot>(
+                future: FirebaseFirestore.instance.collection('restaurantes').doc(uid).get(),
+                builder: (context, restauranteSnapshot) {
+                  if (restauranteSnapshot.connectionState == ConnectionState.waiting) {
+                    return const Scaffold(body: Center(child: CircularProgressIndicator(color: Color(0xFFF26B2A))));
+                  }
+
+                  if (restauranteSnapshot.hasData && restauranteSnapshot.data!.exists) {
+                    _guardarTokenEnBaseDeDatos(uid, 'restaurantes');
+                    return const PanelRestaurantePage();
+                  } 
+                  
+                  // 🔥 NIVEL 3: Si no es restaurante, ¿Es Cliente?
+                  else {
+                    return FutureBuilder<DocumentSnapshot>(
+                      future: FirebaseFirestore.instance.collection('clientes').doc(uid).get(),
+                      builder: (context, clienteSnapshot) {
+                        if (clienteSnapshot.connectionState == ConnectionState.waiting) {
+                          return const Scaffold(body: Center(child: CircularProgressIndicator(color: Color(0xFFF26B2A))));
+                        }
+                        if (clienteSnapshot.hasData && clienteSnapshot.data!.exists) {
+                          _guardarTokenEnBaseDeDatos(uid, 'clientes');
+                          return const HomeClientePage();
+                        } else {
+                          // Si no está en ninguna colección, lo mandamos al Login
+                          return const LoginPage(); 
+                        }
+                      },
+                    );
+                  }
+                },
+              );
             },
           );
         }
+        
+        // Si no hay sesión, al Login
         return const LoginPage();
       },
     );

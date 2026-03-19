@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
-import '../auth/login_page.dart';
 import 'perfil_restaurante_page.dart';
 import 'menu_restaurante_page.dart';
 import 'publicar_oferta_page.dart';
@@ -57,9 +56,9 @@ class _PanelRestaurantePageState extends State<PanelRestaurantePage> {
     }
   }
 
+  // 🔥 AQUÍ ESTÁ EL CAMBIO: Función limpia para evitar el choque de pantallas
   Future<void> _cerrarSesion() async {
     await FirebaseAuth.instance.signOut();
-    if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const LoginPage()));
   }
 
   @override
@@ -125,7 +124,6 @@ class _PanelRestaurantePageState extends State<PanelRestaurantePage> {
                               ),
                             ),
                             
-                            // 🔥 Aquí estaba la campana, ahora solo está el botón de ajustes 🔥
                             GestureDetector(
                               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PerfilRestaurantePage())),
                               child: Container(

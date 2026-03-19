@@ -19,25 +19,85 @@ class _MenuRestaurantePageState extends State<MenuRestaurantePage> {
   final Color darkBlue = const Color(0xFF0F172A);
   final Color bgColor = const Color(0xFFF8F9FA);
 
-  Future<void> _borrarPlatillo(String idPlatillo) async {
+  // 🔥 Se agregó el parámetro 'nombrePlatillo' para mostrarlo en la advertencia
+  Future<void> _borrarPlatillo(String idPlatillo, String nombrePlatillo) async {
     bool confirmar = await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('¿Borrar platillo?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
-        content: const Text('Esta acción no se puede deshacer.', style: TextStyle(fontSize: 16)),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar', style: TextStyle(color: Colors.grey, fontSize: 16))),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade400, 
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12)
-            ),
-            onPressed: () => Navigator.pop(context, true), 
-            child: const Text('Sí, borrar', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
+        elevation: 10,
+        backgroundColor: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 10),
+              // Ícono Circular Anidado
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFFF0F0), // Rosa súper claro
+                  shape: BoxShape.circle,
+                ),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFFE4E4), // Rosa claro
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444), size: 36),
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Título
+              const Text(
+                "¿Deseas eliminarlo?",
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+              ),
+              const SizedBox(height: 12),
+              // Subtítulo con el nombre del platillo
+              RichText(
+                textAlign: TextAlign.center,
+                text: TextSpan(
+                  style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12, fontWeight: FontWeight.w700, height: 1.5, fontFamily: 'Inter'),
+                  children: [
+                    const TextSpan(text: "Vas a eliminar "),
+                    TextSpan(text: nombrePlatillo, style: const TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.w900)),
+                    const TextSpan(text: "\npermanentemente de tu menú. Esta\nacción no se puede revertir."),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32),
+              // Botón Confirmar
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFEF4444), // Rojo
+                  foregroundColor: Colors.white,
+                  elevation: 6,
+                  shadowColor: const Color(0xFFEF4444).withOpacity(0.4), // Sombra iluminada
+                  minimumSize: const Size(double.infinity, 55),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text("CONFIRMAR BAJA", style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+              ),
+              const SizedBox(height: 12),
+              // Botón Cancelar
+              TextButton(
+                style: TextButton.styleFrom(
+                  backgroundColor: const Color(0xFFF8FAFC), // Gris muy sutil
+                  foregroundColor: const Color(0xFF64748B), // Texto gris azulado
+                  minimumSize: const Size(double.infinity, 55),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text("CANCELAR", style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+              ),
+              const SizedBox(height: 10),
+            ],
           ),
-        ],
+        ),
       ),
     ) ?? false;
 
@@ -203,7 +263,8 @@ class _MenuRestaurantePageState extends State<MenuRestaurantePage> {
                                         ),
                                         const SizedBox(width: 12),
                                         GestureDetector(
-                                          onTap: () => _borrarPlatillo(idPlatillo),
+                                          // 🔥 Pasamos también el nombre del platillo a la función
+                                          onTap: () => _borrarPlatillo(idPlatillo, platillo['nombre'] ?? 'este platillo'),
                                           child: Container(
                                             padding: const EdgeInsets.all(12),
                                             decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(14)),
@@ -220,7 +281,7 @@ class _MenuRestaurantePageState extends State<MenuRestaurantePage> {
                         ],
                       ),
                     );
-                  }).toList(), // Usamos .toList() para renderizar todos los de esta categoría
+                  }).toList(),
                 ],
               );
             },

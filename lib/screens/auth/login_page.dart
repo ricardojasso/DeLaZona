@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; 
 import 'registro_cliente_page.dart';
 import 'registro_restaurante_page.dart';
-import '../restaurante/panel_restaurante_page.dart';
-import '../cliente/home_cliente_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -18,71 +16,61 @@ class _LoginPageState extends State<LoginPage> {
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   
-  // Variable para controlar el estado de carga sin usar showDialog
   bool _isLoading = false;
 
   Future<void> _iniciarSesion() async {
     if (_formKey.currentState!.validate()) {
-      
       setState(() {
         _isLoading = true;
       });
 
+      // Capturamos el mensajero ANTES de que el Enrutador cambie la pantalla
+      final scaffoldMessenger = ScaffoldMessenger.of(context);
+
       try {
-        //Iniciar sesión
         UserCredential credencial = await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
 
         String uid = credencial.user!.uid;
-        String nombreUsuario = '';
-        String rolUsuario = '';
+        String mensajeBienvenida = 'Accediendo a DeLaZona...';
 
-        DocumentSnapshot docCliente = await FirebaseFirestore.instance.collection('clientes').doc(uid).get();
-
-        if (docCliente.exists) {
-          rolUsuario = "cliente";
-          nombreUsuario = 'cliente';
+        // 1. Buscamos PRIMERO si es Administrador Maestro
+        DocumentSnapshot docAdmin = await FirebaseFirestore.instance.collection('usuarios_roles').doc(uid).get();
+        
+        if (docAdmin.exists && (docAdmin.data() as Map<String, dynamic>)['role'] == 'admin') {
+          mensajeBienvenida = '¡Bienvenido, Administrador Maestro!';
         } else {
+          // 2. Si no es admin, buscamos si es Restaurante
           DocumentSnapshot docRestaurante = await FirebaseFirestore.instance.collection('restaurantes').doc(uid).get();
-          
           if (docRestaurante.exists) {
-            rolUsuario = 'restaurante';
-            nombreUsuario = docRestaurante['nombre_restaurante'] ?? 'Restaurante';
+            String nombre = docRestaurante['nombre_restaurante'] ?? 'Restaurante';
+            mensajeBienvenida = '¡Bienvenido, $nombre!';
+          } else {
+            // 3. Al final, asumimos que es Cliente
+            DocumentSnapshot docCliente = await FirebaseFirestore.instance.collection('clientes').doc(uid).get();
+            if (docCliente.exists) {
+              mensajeBienvenida = '¡Bienvenido, Cliente!';
+            }
           }
         }
 
-        if (rolUsuario.isNotEmpty) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Bienvenido, $nombreUsuario'),
-                backgroundColor: const Color(0xFFF26B2A),
-              ),
-            );
-            
-            if (rolUsuario == 'restaurante') {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const PanelRestaurantePage()),
-              );
-            } else if (rolUsuario == 'cliente') {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const HomeClientePage()),
-              );
-            }
-          }
-        } else {
-           if (mounted) {
-            setState(() {
-              _isLoading = false;
-            });
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Error: Datos del usuario no encontrados.'), backgroundColor: Colors.red),
-            );
-           }
+        // Mostramos el mensaje flotante
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text(mensajeBienvenida, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            backgroundColor: const Color(0xFFF26B2A),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+
+        // Apagamos carga (sin usar Navigator.pop para que no choque)
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
         }
 
       } on FirebaseAuthException catch (e) {
@@ -101,11 +89,9 @@ class _LoginPageState extends State<LoginPage> {
           mensaje = 'Correo o contraseña incorrectos.'; 
         }
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(mensaje), backgroundColor: Colors.red),
-          );
-        }
+        scaffoldMessenger.showSnackBar(
+          SnackBar(content: Text(mensaje), backgroundColor: Colors.red),
+        );
       }
     }
   }
@@ -189,6 +175,8 @@ class _LoginPageState extends State<LoginPage> {
                           decoration: InputDecoration(
                             hintText: 'tu@email.com',
                             hintStyle: TextStyle(color: Colors.grey.shade400),
+                            // 🔥 Ícono de la carta agregado aquí
+                            prefixIcon: const Icon(Icons.email_outlined, color: orangeColor, size: 22),
                             filled: true,
                             fillColor: Colors.grey.shade100,
                             border: OutlineInputBorder(
@@ -213,6 +201,8 @@ class _LoginPageState extends State<LoginPage> {
                           decoration: InputDecoration(
                             hintText: '........',
                             hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 24, letterSpacing: 2),
+                            // 🔥 Ícono del candado agregado aquí
+                            prefixIcon: const Icon(Icons.lock_outline, color: orangeColor, size: 22),
                             filled: true,
                             fillColor: Colors.grey.shade100,
                             border: OutlineInputBorder(

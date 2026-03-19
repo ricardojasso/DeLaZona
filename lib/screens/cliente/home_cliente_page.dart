@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'detalle_restaurante_page.dart'; 
-import '../auth/login_page.dart'; 
 
 class HomeClientePage extends StatefulWidget {
   const HomeClientePage({super.key});
@@ -27,14 +26,9 @@ class _HomeClientePageState extends State<HomeClientePage> {
     Colors.orange.shade500,
   ];
 
+  // 🔥 AQUÍ ESTÁ EL CAMBIO: Función limpia para que el Enrutador tome el control
   Future<void> _cerrarSesion() async {
-    await FirebaseAuth.instance.signOut();
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginPage()),
-      );
-    }
+    await FirebaseAuth.instance.signOut(); 
   }
 
   @override
@@ -148,6 +142,11 @@ class _HomeClientePageState extends State<HomeClientePage> {
                 var todosLosRestaurantes = snapshot.data!.docs;
                 var restaurantesFiltrados = todosLosRestaurantes.where((doc) {
                   var data = doc.data() as Map<String, dynamic>;
+                  
+                  // 1. FILTRO DE ADMIN: Si el Master lo ocultó, no lo mostramos.
+                  if (data['isVisible'] == false) return false;
+
+                  // 2. FILTRO DE BÚSQUEDA DEL CLIENTE:
                   String nombre = (data['nombre_restaurante'] ?? '').toString().toLowerCase();
                   String descripcion = (data['descripcion'] ?? '').toString().toLowerCase();
                   
@@ -191,20 +190,16 @@ class _HomeClientePageState extends State<HomeClientePage> {
                         if (promocion.isNotEmpty && fechaFin != null && fechaInicio != null) {
                           DateTime ahora = DateTime.now();
                           
-                          
                           DateTime inicio = fechaInicio.toDate();
                           inicio = DateTime(inicio.year, inicio.month, inicio.day, 0, 0, 0);
                           
-                          
                           DateTime fin = fechaFin.toDate();
                           fin = DateTime(fin.year, fin.month, fin.day, 23, 59, 59);
-
                           
                           if (ahora.isBefore(inicio) || ahora.isAfter(fin)) {
                             promocion = ''; 
                           }
                         }
-                        
                         
                         String tituloGigante = nombre.split(' ')[0].toUpperCase();
                         Color colorTarjeta = _cardColors[index % _cardColors.length];
@@ -248,7 +243,6 @@ class _HomeClientePageState extends State<HomeClientePage> {
                                   ),
                                   child: ClipRRect(
                                     borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
-                                    // 🔥 AQUÍ SE REEMPLAZÓ POR CACHEDNETWORKIMAGE 🔥
                                     child: imagenUrl.isNotEmpty
                                       ? CachedNetworkImage(
                                           imageUrl: imagenUrl,
