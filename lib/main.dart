@@ -5,7 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart'; 
 
 import 'firebase_options.dart'; 
-import 'screens/auth/login_page.dart';
+import 'screens/auth/auth_page.dart';
 import 'screens/restaurante/panel_restaurante_page.dart';
 import 'screens/cliente/home_cliente_page.dart';
 import 'screens/admin/admin_panel_page.dart'; // Importamos tu nuevo Panel Maestro
@@ -161,7 +161,7 @@ class EnrutadorPrincipal extends StatelessWidget {
                           return const HomeClientePage();
                         } else {
                           // Si no está en ninguna colección, lo mandamos al Login
-                          return const LoginPage(); 
+                          return const AuthPage(); 
                         }
                       },
                     );
@@ -173,7 +173,7 @@ class EnrutadorPrincipal extends StatelessWidget {
         }
         
         // Si no hay sesión, al Login
-        return const LoginPage();
+        return const AuthPage();
       },
     );
   }

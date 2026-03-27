@@ -55,7 +55,6 @@ class _PerfilRestaurantePageState extends State<PerfilRestaurantePage> {
     }
   }
 
-  // 🔥 NUEVO: Menú para elegir entre Cámara o Galería 🔥
   void _mostrarOpcionesDeFoto() {
     showModalBottomSheet(
       context: context,
@@ -78,8 +77,8 @@ class _PerfilRestaurantePageState extends State<PerfilRestaurantePage> {
                   ),
                   title: const Text('Tomar foto con la Cámara', style: TextStyle(fontWeight: FontWeight.bold)),
                   onTap: () {
-                    Navigator.pop(context); // Cierra el menú
-                    _seleccionarFoto(ImageSource.camera); // Abre la cámara
+                    Navigator.pop(context); 
+                    _seleccionarFoto(ImageSource.camera); 
                   },
                 ),
                 ListTile(
@@ -90,8 +89,8 @@ class _PerfilRestaurantePageState extends State<PerfilRestaurantePage> {
                   ),
                   title: const Text('Elegir de la Galería', style: TextStyle(fontWeight: FontWeight.bold)),
                   onTap: () {
-                    Navigator.pop(context); // Cierra el menú
-                    _seleccionarFoto(ImageSource.gallery); // Abre la galería
+                    Navigator.pop(context); 
+                    _seleccionarFoto(ImageSource.gallery); 
                   },
                 ),
               ],
@@ -102,7 +101,6 @@ class _PerfilRestaurantePageState extends State<PerfilRestaurantePage> {
     );
   }
 
-  // Ahora recibe el origen (Cámara o Galería) como parámetro
   Future<void> _seleccionarFoto(ImageSource origen) async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: origen, imageQuality: 70);
@@ -198,7 +196,7 @@ class _PerfilRestaurantePageState extends State<PerfilRestaurantePage> {
                           ),
                         ),
                         GestureDetector(
-                          onTap: _mostrarOpcionesDeFoto, // 🔥 Cambiado para abrir el menú
+                          onTap: _mostrarOpcionesDeFoto, 
                           child: Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(color: orangeColor, borderRadius: BorderRadius.circular(14), border: Border.all(color: bgColor, width: 3)),
