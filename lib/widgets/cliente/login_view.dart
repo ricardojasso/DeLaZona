@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../widgets/boton_naranja.dart';
-import '../../widgets/campo_texto_personalizado.dart';
-import '../restaurante/panel_restaurante_page.dart';
-import '../cliente/home_cliente_page.dart';
+import '../auth/boton_naranja.dart';
+import '../auth/campo_texto_personalizado.dart';
+import '../../screens/restaurante/panel_restaurante_page.dart';
+import '../../screens/cliente/home_cliente_page.dart';
 
 class LoginView extends StatefulWidget {
   // Recibimos los "cables" desde el archivo maestro

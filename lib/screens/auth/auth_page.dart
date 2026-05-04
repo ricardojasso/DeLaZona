@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'login_view.dart';
+import '../../widgets/cliente/login_view.dart';
 import 'registro_cliente_view.dart';
 import 'registro_restaurante_view.dart';
 

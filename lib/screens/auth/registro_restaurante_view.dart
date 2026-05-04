@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../widgets/boton_naranja.dart';
-import '../../widgets/campo_texto_personalizado.dart';
+import '../../widgets/auth/boton_naranja.dart';
+import '../../widgets/auth/campo_texto_personalizado.dart';
 import '../restaurante/panel_restaurante_page.dart';
 
 class RegistroRestauranteView extends StatefulWidget {

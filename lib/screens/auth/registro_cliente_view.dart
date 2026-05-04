@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../widgets/boton_naranja.dart'; // Aunque el botón sea azul, reciclamos el widget si lo personalizamos o usamos el nativo
-import '../../widgets/campo_texto_personalizado.dart';
+import '../../widgets/auth/campo_texto_personalizado.dart';
 import '../cliente/home_cliente_page.dart';
 
 class RegistroClienteView extends StatefulWidget {

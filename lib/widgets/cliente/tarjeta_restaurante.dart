@@ -40,7 +40,7 @@ class TarjetaRestaurante extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- HEADER DE LA TARJETA (IMAGEN) ---
+            // HEADER DE LA TARJETA 
             Container(
               height: 140,
               width: double.infinity,
@@ -61,7 +61,7 @@ class TarjetaRestaurante extends StatelessWidget {
               ),
             ),
 
-            // --- CUERPO DE LA TARJETA (TEXTOS) ---
+            // CUERPO DE LA TARJETA 
             Padding(
               padding: const EdgeInsets.all(24),
               child: Column(

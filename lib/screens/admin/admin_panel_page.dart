@@ -20,7 +20,7 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
     });
   }
 
-  // --- DISEÑO DE BAJA DEFINITIVA ---
+  // DISEÑO DE BAJA DEFINITIVA
   Future<void> _eliminarNegocio(String docId, String nombre) async {
     await showDialog(
       context: context,
@@ -167,7 +167,7 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
               ),
             ),
 
-            // --- CONTENIDO SCROLLABLE ---
+            //CONTENIDO SCROLLABLE
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance.collection('restaurantes').snapshots(),
@@ -256,7 +256,7 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
                                               ),
                                             ),
                                             
-                                            // 🔥 AQUÍ ESTÁ EL NUEVO DISEÑO DEL MENÚ DE PUNTOS 🔥
+                                           //Diseño menu puntos
                                             PopupMenuButton(
                                               color: Colors.white,
                                               elevation: 10,
@@ -316,7 +316,7 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
                                             ),
                                             Switch(
                                               value: activo, 
-                                              activeColor: Colors.green,
+                                              activeThumbColor: Colors.green,
                                               inactiveTrackColor: Colors.red.shade200,
                                               onChanged: (val) => _toggleVisibilidad(docs[index].id, activo),
                                             )

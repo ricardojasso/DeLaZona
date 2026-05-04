@@ -1,10 +1,12 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../widgets/restaurante/campo_formulario.dart';
+import '../../widgets/restaurante/etiqueta_formulario.dart';
+import '../../widgets/restaurante/selector_imagen_platillo.dart'; // ¡Lo reciclamos para el perfil!
 
 class PerfilRestaurantePage extends StatefulWidget {
   const PerfilRestaurantePage({super.key});
@@ -24,9 +26,9 @@ class _PerfilRestaurantePageState extends State<PerfilRestaurantePage> {
   final _direccionCtrl = TextEditingController();
   final _descripcionCtrl = TextEditingController();
 
-  final Color orangeColor = const Color(0xFFF26B2A);
-  final Color darkBlue = const Color(0xFF0F172A);
-  final Color bgColor = const Color(0xFFF8F9FA);
+  final Color _orangeColor = const Color(0xFFF26B2A);
+  final Color _darkBlue = const Color(0xFF0F172A);
+  final Color _bgColor = const Color(0xFFF8F9FA);
 
   @override
   void initState() {
@@ -34,19 +36,19 @@ class _PerfilRestaurantePageState extends State<PerfilRestaurantePage> {
     _cargarDatos();
   }
 
+  // 1. LÓGICA DE BASE DE DATOS Y FOTOS
+
   Future<void> _cargarDatos() async {
     try {
       DocumentSnapshot doc = await FirebaseFirestore.instance.collection('restaurantes').doc(_uid).get();
       if (doc.exists && mounted) {
         setState(() {
-          _nombreCtrl.text = doc['nombre_restaurante'] ?? '';
-          _descripcionCtrl.text = doc['descripcion'] ?? '';
-          
-          Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-          _whatsappCtrl.text = data.containsKey('whatsapp') ? data['whatsapp'] : '';
-          _direccionCtrl.text = data.containsKey('direccion') ? data['direccion'] : '';
-          
-          _fotoUrl = doc['foto_perfil'] ?? '';
+          var data = doc.data() as Map<String, dynamic>;
+          _nombreCtrl.text = data['nombre_restaurante'] ?? '';
+          _descripcionCtrl.text = data['descripcion'] ?? '';
+          _whatsappCtrl.text = data['whatsapp'] ?? '';
+          _direccionCtrl.text = data['direccion'] ?? '';
+          _fotoUrl = data['foto_perfil'] ?? '';
           _isLoading = false;
         });
       }
@@ -57,8 +59,7 @@ class _PerfilRestaurantePageState extends State<PerfilRestaurantePage> {
 
   void _mostrarOpcionesDeFoto() {
     showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
+      context: context, backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (BuildContext context) {
         return SafeArea(
@@ -67,31 +68,17 @@ class _PerfilRestaurantePageState extends State<PerfilRestaurantePage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Actualizar foto de perfil', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: darkBlue)),
+                Text('Actualizar foto de perfil', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: _darkBlue)),
                 const SizedBox(height: 20),
                 ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: Colors.orange.shade50, shape: BoxShape.circle),
-                    child: const Icon(Icons.camera_alt_rounded, color: Color(0xFFF26B2A)),
-                  ),
+                  leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.orange.shade50, shape: BoxShape.circle), child: const Icon(Icons.camera_alt_rounded, color: Color(0xFFF26B2A))),
                   title: const Text('Tomar foto con la Cámara', style: TextStyle(fontWeight: FontWeight.bold)),
-                  onTap: () {
-                    Navigator.pop(context); 
-                    _seleccionarFoto(ImageSource.camera); 
-                  },
+                  onTap: () { Navigator.pop(context); _seleccionarFoto(ImageSource.camera); },
                 ),
                 ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: Colors.blue.shade50, shape: BoxShape.circle),
-                    child: const Icon(Icons.photo_library_rounded, color: Colors.blue),
-                  ),
+                  leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.blue.shade50, shape: BoxShape.circle), child: const Icon(Icons.photo_library_rounded, color: Colors.blue)),
                   title: const Text('Elegir de la Galería', style: TextStyle(fontWeight: FontWeight.bold)),
-                  onTap: () {
-                    Navigator.pop(context); 
-                    _seleccionarFoto(ImageSource.gallery); 
-                  },
+                  onTap: () { Navigator.pop(context); _seleccionarFoto(ImageSource.gallery); },
                 ),
               ],
             ),
@@ -102,13 +89,8 @@ class _PerfilRestaurantePageState extends State<PerfilRestaurantePage> {
   }
 
   Future<void> _seleccionarFoto(ImageSource origen) async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: origen, imageQuality: 70);
-    if (pickedFile != null) {
-      setState(() {
-        _nuevaFoto = File(pickedFile.path);
-      });
-    }
+    final pickedFile = await ImagePicker().pickImage(source: origen, imageQuality: 70);
+    if (pickedFile != null) setState(() => _nuevaFoto = File(pickedFile.path));
   }
 
   Future<void> _guardarPerfil() async {
@@ -141,140 +123,65 @@ class _PerfilRestaurantePageState extends State<PerfilRestaurantePage> {
     }
   }
 
+  // 2. INTERFAZ GRÁFICA (UI)
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: _bgColor,
       appBar: AppBar(
-        backgroundColor: bgColor,
-        elevation: 0,
-        toolbarHeight: 80, // AppBar más alto
+        backgroundColor: _bgColor, elevation: 0, toolbarHeight: 80,
         leading: Padding(
           padding: const EdgeInsets.only(left: 16.0, top: 12, bottom: 12),
-          child: Container(
-            decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: Colors.grey.shade200, width: 2)),
-            child: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.blueGrey, size: 22),
-              onPressed: () => Navigator.pop(context),
-            ),
-          ),
+          child: Container(decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: Colors.grey.shade200, width: 2)), child: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.blueGrey, size: 22), onPressed: () => Navigator.pop(context))),
         ),
-        title: Text('Perfil del Negocio', style: TextStyle(color: darkBlue, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic, fontSize: 26)),
-        centerTitle: false,
+        title: Text('Perfil del Negocio', style: TextStyle(color: _darkBlue, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic, fontSize: 26)), centerTitle: false,
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: orangeColor))
+          ? Center(child: CircularProgressIndicator(color: _orangeColor))
           : SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // --- FOTO DE PERFIL GIGANTE ---
-                  Center(
-                    child: Stack(
-                      alignment: Alignment.bottomRight,
-                      children: [
-                        Container(
-                          width: 160, height: 160, // Escalado
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(45),
-                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, 10))],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(45),
-                            child: _nuevaFoto != null
-                                ? Image.file(_nuevaFoto!, fit: BoxFit.cover)
-                                : (_fotoUrl.isNotEmpty
-                                    ? CachedNetworkImage(
-                                        imageUrl: _fotoUrl,
-                                        fit: BoxFit.cover,
-                                        placeholder: (context, url) => Center(child: CircularProgressIndicator(color: orangeColor)),
-                                        errorWidget: (context, url, error) => const Center(child: Text('🔥', style: TextStyle(fontSize: 50))),
-                                      )
-                                    : const Center(child: Text('🔥', style: TextStyle(fontSize: 50)))),
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: _mostrarOpcionesDeFoto, 
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(color: orangeColor, borderRadius: BorderRadius.circular(14), border: Border.all(color: bgColor, width: 3)),
-                            child: const Icon(Icons.camera_alt_outlined, color: Colors.white, size: 22),
-                          ),
-                        ),
-                      ],
-                    ),
+                  // 🔥 Reutilizamos el widget de imagen 🔥
+                  SelectorImagenPlatillo(
+                    imagenFila: _nuevaFoto, 
+                    imageUrl: _fotoUrl, 
+                    onTapCamara: _mostrarOpcionesDeFoto
                   ),
                   const SizedBox(height: 40),
 
-                  // --- CAMPOS DE TEXTO ESCALADOS ---
-                  _buildLabel('NOMBRE DEL LOCAL'),
-                  _buildTextField(_nombreCtrl, Icons.storefront),
+                  // 🔥 Reutilizamos los campos de formulario 🔥
+                  const EtiquetaFormulario(texto: 'NOMBRE DEL LOCAL'),
+                  CampoFormulario(controlador: _nombreCtrl, hint: 'Ej. Taquería El Paisa', icono: Icons.storefront),
                   
                   const SizedBox(height: 20),
-                  _buildLabel('WHATSAPP DE PEDIDOS'),
-                  _buildTextField(_whatsappCtrl, Icons.phone_outlined, isPhone: true),
+                  const EtiquetaFormulario(texto: 'WHATSAPP DE PEDIDOS'),
+                  CampoFormulario(controlador: _whatsappCtrl, hint: 'Ej. 9931234567', icono: Icons.phone_outlined, isPhone: true),
                   
                   const SizedBox(height: 20),
-                  _buildLabel('DIRECCIÓN'),
-                  _buildTextField(_direccionCtrl, Icons.location_on_outlined),
+                  const EtiquetaFormulario(texto: 'DIRECCIÓN'),
+                  CampoFormulario(controlador: _direccionCtrl, hint: 'Ej. Centro, calle 1...', icono: Icons.location_on_outlined),
                   
                   const SizedBox(height: 20),
-                  _buildLabel('DESCRIPCIÓN CORTA'),
-                  _buildTextField(_descripcionCtrl, Icons.notes_rounded, maxLines: 4),
+                  const EtiquetaFormulario(texto: 'DESCRIPCIÓN CORTA'),
+                  CampoFormulario(controlador: _descripcionCtrl, hint: 'Breve descripción de tu menú...', icono: Icons.notes_rounded, maxLines: 4),
                 ],
               ),
             ),
-      // --- BOTÓN GIGANTE NARANJA ---
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24, top: 10),
           child: SizedBox(
-            width: double.infinity,
-            height: 65, // Botón grueso
+            width: double.infinity, height: 65,
             child: ElevatedButton.icon(
               onPressed: _isLoading ? null : _guardarPerfil,
               icon: const Icon(Icons.check, color: Colors.white, size: 24),
               label: const Text('GUARDAR PERFIL', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 2.0, fontSize: 16)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: orangeColor,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                elevation: 0,
-              ),
+              style: ElevatedButton.styleFrom(backgroundColor: _orangeColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)), elevation: 0),
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLabel(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12, left: 8),
-      child: Text(text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2.0)),
-    );
-  }
-
-  Widget _buildTextField(TextEditingController controller, IconData icon, {bool isPhone = false, int maxLines = 1}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 15, offset: const Offset(0, 5))],
-      ),
-      child: TextField(
-        controller: controller,
-        keyboardType: isPhone ? TextInputType.phone : TextInputType.text,
-        maxLines: maxLines,
-        style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0F172A), fontSize: 16),
-        decoration: InputDecoration(
-          prefixIcon: Padding(
-            padding: const EdgeInsets.only(left: 20, right: 10),
-            child: Icon(icon, color: const Color(0xFFF26B2A), size: 24),
-          ),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
         ),
       ),
     );

@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart'; 
 import 'package:firebase_auth/firebase_auth.dart'; 
-
-// --- IMPORTAMOS TODOS LOS WIDGETS ---
-import '../../widgets/tarjeta_platillo.dart';
-import '../../widgets/header_detalle_restaurante.dart';
-import '../../widgets/info_detalle_restaurante.dart';
-import '../../widgets/boton_pedido_restaurante.dart';
+import '../../widgets/cliente/tarjeta_platillo.dart';
+import '../../widgets/cliente/header_detalle_restaurante.dart';
+import '../../widgets/cliente/info_detalle_restaurante.dart';
+import '../../widgets/cliente/boton_pedido_restaurante.dart';
 
 class DetalleRestaurantePage extends StatefulWidget {
   final String idRestaurante, nombre, tituloGigante, descripcion, direccion, whatsapp, imagenUrl, promocion;
@@ -26,7 +24,7 @@ class DetalleRestaurantePage extends StatefulWidget {
 
 class _DetalleRestaurantePageState extends State<DetalleRestaurantePage> {
   bool _isFollowing = false;
-  Map<String, Map<String, dynamic>> _carrito = {};
+  final Map<String, Map<String, dynamic>> _carrito = {};
   late Stream<QuerySnapshot> _menuStream;
 
   @override
@@ -129,7 +127,7 @@ class _DetalleRestaurantePageState extends State<DetalleRestaurantePage> {
     );
   }
 
-  // El Stream del Menú se queda aquí porque maneja el estado del carrito
+//carrito se queda asi 
   Widget _buildMenuStream() {
     return StreamBuilder<QuerySnapshot>(
       stream: _menuStream,
@@ -138,10 +136,12 @@ class _DetalleRestaurantePageState extends State<DetalleRestaurantePage> {
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return Center(child: Padding(padding: const EdgeInsets.all(20), child: Text('Menú no disponible.', style: TextStyle(color: Colors.grey.shade400, fontWeight: FontWeight.bold))));
 
         Map<String, List<QueryDocumentSnapshot>> categoriasMap = {};
-        for (var doc in snapshot.data!.docs) categoriasMap.putIfAbsent((doc.data() as Map)['categoria']?.toString().trim() ?? 'Otros', () => []).add(doc);
+        for (var doc in snapshot.data!.docs) {
+          categoriasMap.putIfAbsent((doc.data() as Map)['categoria']?.toString().trim() ?? 'Otros', () => []).add(doc);
+        }
 
         final orden = ['Entradas y Aperitivos', 'Platos Fuertes', 'Desayunos', 'Bebidas', 'Postres', 'Snacks y Botanas', 'Guarniciones o Extras', 'Especialidades', 'Otros'];
-        List<String> categorias = categoriasMap.keys.toList()..sort((a, b) => (orden.indexOf(a) == -1 ? 999 : orden.indexOf(a)).compareTo(orden.indexOf(b) == -1 ? 999 : orden.indexOf(b)));
+        List<String> categorias = categoriasMap.keys.toList()..sort((a, b) => (!orden.contains(a) ? 999 : orden.indexOf(a)).compareTo(!orden.contains(b) ? 999 : orden.indexOf(b)));
 
         return ListView.builder(
           shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), padding: EdgeInsets.zero, itemCount: categorias.length,
@@ -159,7 +159,11 @@ class _DetalleRestaurantePageState extends State<DetalleRestaurantePage> {
                   return TarjetaPlatillo(
                     data: data, nombrePlatillo: nombre, cantidadActual: cant, colorTema: widget.colorTema, isAbierto: widget.isAbierto,
                     onAdd: () => setState(() => _carrito[nombre] = {'cantidad': cant + 1, 'precio': data['precio']}),
-                    onRemove: () => setState(() { if (cant > 1) _carrito[nombre]!['cantidad'] = cant - 1; else _carrito.remove(nombre); }),
+                    onRemove: () => setState(() { if (cant > 1) {
+                      _carrito[nombre]!['cantidad'] = cant - 1;
+                    } else {
+                      _carrito.remove(nombre);
+                    } }),
                   );
                 }),
               ],

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'detalle_restaurante_page.dart';
-import '../../widgets/buscador_cliente.dart';
-import '../../widgets/tarjeta_restaurante.dart';
+import '../../widgets/cliente/buscador_cliente.dart';
+import '../../widgets/cliente/tarjeta_restaurante.dart';
 
 class HomeClientePage extends StatefulWidget {
   const HomeClientePage({super.key});
@@ -23,9 +23,6 @@ class _HomeClientePageState extends State<HomeClientePage> {
     Colors.purple.shade500, Colors.orange.shade500,
   ];
 
-  // ==========================================================
-  // 1. MÉTODO PRINCIPAL (¡Mira qué limpio quedó!)
-  // ==========================================================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -43,10 +40,6 @@ class _HomeClientePageState extends State<HomeClientePage> {
       ),
     );
   }
-
-  // ==========================================================
-  // 2. MINI-FUNCIONES DE INTERFAZ (Secciones de la pantalla)
-  // ==========================================================
 
   Widget _buildHeader() {
     return SliverAppBar(
@@ -141,9 +134,6 @@ class _HomeClientePageState extends State<HomeClientePage> {
     );
   }
 
-  // ==========================================================
-  // 3. HELPERS (Funciones de apoyo para que la lista no crezca)
-  // ==========================================================
 
   // Valida que la fecha de la promo sea correcta
   String _validarPromo(Map<String, dynamic> data) {
