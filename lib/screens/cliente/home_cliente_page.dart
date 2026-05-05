@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
-
-// --- IMPORTAMOS WIDGETS Y PANTALLAS ---
 import 'detalle_restaurante_page.dart';
 import '../../widgets/cliente/buscador_cliente.dart';
 import '../../widgets/cliente/tarjeta_restaurante.dart';
-
-// --- IMPORTAMOS NUESTROS SERVICIOS ---
 import '../../services/auth_service.dart';
 import '../../services/Cliente/cliente_service.dart';
 
@@ -95,13 +91,10 @@ class _HomeClientePageState extends State<HomeClientePage> {
 
   Widget _buildListaRestaurantes() {
     return StreamBuilder<List<Map<String, dynamic>>>(
-      // 🔥 Usamos nuestro servicio limpio 🔥
       stream: _clienteService.streamRestaurantes(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) return const SliverFillRemaining(child: Center(child: CircularProgressIndicator()));
         if (!snapshot.hasData || snapshot.data!.isEmpty) return _buildMensajeVacio('Aún no hay restaurantes :(');
-
-        // Lógica de filtrado en memoria
         var filtrados = snapshot.data!.where((data) {
           if (data['isVisible'] == false) return false;
           if (_textoBusqueda.isEmpty) return true;
@@ -112,7 +105,7 @@ class _HomeClientePageState extends State<HomeClientePage> {
 
         if (filtrados.isEmpty) return _buildMensajeVacio('No encontramos "$_textoBusqueda"', icon: Icons.search_off_rounded);
 
-        // Construcción de la lista
+        // Lista 
         return SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
           sliver: SliverList(
@@ -142,7 +135,6 @@ class _HomeClientePageState extends State<HomeClientePage> {
     );
   }
 
-  // Dibuja la pantalla cuando no hay resultados
   Widget _buildMensajeVacio(String texto, {IconData? icon}) {
     return SliverFillRemaining(
       child: Center(

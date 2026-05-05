@@ -2,8 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
-
-// --- IMPORTAMOS WIDGETS Y EL NUEVO SERVICIO ---
 import '../../widgets/restaurante/campo_formulario.dart';
 import '../../widgets/restaurante/etiqueta_formulario.dart';
 import '../../widgets/restaurante/selector_imagen_platillo.dart'; 
@@ -39,9 +37,7 @@ class _PerfilRestaurantePageState extends State<PerfilRestaurantePage> {
     _cargarDatos();
   }
 
-  // ==========================================
   // 1. LÓGICA DE DATOS CON EL SERVICIO
-  // ==========================================
 
   Future<void> _cargarDatos() async {
     try {
@@ -104,7 +100,6 @@ class _PerfilRestaurantePageState extends State<PerfilRestaurantePage> {
   Future<void> _guardarPerfil() async {
     setState(() => _isLoading = true);
     try {
-      // 🔥 LA MAGIA DEL SERVICIO 🔥
       await _restauranteService.actualizarPerfil(
         uid: _uid,
         nombre: _nombreCtrl.text.trim(),
@@ -126,9 +121,7 @@ class _PerfilRestaurantePageState extends State<PerfilRestaurantePage> {
     }
   }
 
-  // ==========================================
-  // 2. INTERFAZ GRÁFICA (UI)
-  // ==========================================
+  // 2. INTERFAZ GRÁFICA 
 
   @override
   Widget build(BuildContext context) {

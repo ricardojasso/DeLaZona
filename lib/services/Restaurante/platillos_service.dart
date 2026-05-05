@@ -20,7 +20,7 @@ class PlatillosService {
     });
   }
 
-  // 2. CREAR UN NUEVO PLATILLO (Incluye subida de imagen)
+  // 2. CREAR UN NUEVO PLATILLO 
   Future<void> crearPlatillo({
     required String uidRestaurante,
     required String nombre,
@@ -32,14 +32,13 @@ class PlatillosService {
     String fotoUrl = '';
     String idGenerado = DateTime.now().millisecondsSinceEpoch.toString();
 
-    // Si hay foto, primero la subimos a Storage
     if (fotoPlatillo != null) {
       final storageRef = _storage.ref().child('fotos_platillos').child('$uidRestaurante-$idGenerado.jpg');
       await storageRef.putFile(fotoPlatillo);
       fotoUrl = await storageRef.getDownloadURL();
     }
 
-    // Luego guardamos los datos en Firestore
+    //  guardamos datos en Firestore
     await _db.collection('platillos').add({
       'id_restaurante': uidRestaurante,
       'nombre': nombre,
@@ -64,7 +63,7 @@ class PlatillosService {
   }) async {
     String urlFinal = fotoUrlExistente;
 
-    // Si el usuario eligió una foto nueva, la reemplazamos
+    // reemplazar foto existente
     if (nuevaFoto != null) {
       final storageRef = _storage.ref().child('fotos_platillos').child('$uidRestaurante-$idPlatillo.jpg');
       await storageRef.putFile(nuevaFoto);

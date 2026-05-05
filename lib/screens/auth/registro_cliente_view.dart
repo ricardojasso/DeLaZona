@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
-
-// --- IMPORTAMOS EL SERVICIO ---
 import '../../services/auth_service.dart';
-
-// --- WIDGETS Y PANTALLAS ---
 import '../../widgets/auth/campo_texto_personalizado.dart';
 import '../cliente/home_cliente_page.dart';
 
@@ -38,7 +34,6 @@ class _RegistroClienteViewState extends State<RegistroClienteView> {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     try {
-      // 🔥 LA MAGIA DEL SERVICIO 🔥
       await _authService.registrarCliente(
         email: _emailCtrl.text.trim(), 
         password: _passCtrl.text.trim(),

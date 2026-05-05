@@ -1,14 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-// ¡ADIÓS A CLOUD FIRESTORE AQUÍ TAMBIÉN! 🎉
-
-// --- TUS WIDGETS GLOBALES ---
 import '../../widgets/restaurante/campo_formulario.dart';
 import '../../widgets/restaurante/etiqueta_formulario.dart';
 import '../../widgets/restaurante/tarjeta_informativa_oferta.dart';
 import '../../widgets/restaurante/selector_fecha_oferta.dart';
-
-// --- IMPORTAMOS EL SERVICIO ---
 import '../../services/Restaurante/restaurante_service.dart';
 
 class PublicarOfertaPage extends StatefulWidget {
@@ -31,9 +26,7 @@ class _PublicarOfertaPageState extends State<PublicarOfertaPage> {
   DateTime? _fechaInicio;
   DateTime? _fechaFin;
 
-  // ==========================================
   // 1. LÓGICA DE CALENDARIO Y BASE DE DATOS
-  // ==========================================
 
   Future<void> _seleccionarFechas() async {
     DateTimeRange? rango = await showDateRangePicker(
@@ -62,7 +55,6 @@ class _PublicarOfertaPageState extends State<PublicarOfertaPage> {
     }
 
     try {
-      // 🔥 LA MAGIA DEL SERVICIO 🔥
       await _restauranteService.publicarOferta(
         uid: _uid,
         titulo: _tituloCtrl.text.trim(),
@@ -82,7 +74,6 @@ class _PublicarOfertaPageState extends State<PublicarOfertaPage> {
 
   Future<void> _eliminarOferta() async {
     try {
-      // 🔥 LA MAGIA DEL SERVICIO 🔥
       await _restauranteService.eliminarOferta(_uid);
       
       if (mounted) {
@@ -94,9 +85,7 @@ class _PublicarOfertaPageState extends State<PublicarOfertaPage> {
     }
   }
 
-  // ==========================================
-  // 2. INTERFAZ GRÁFICA (UI)
-  // ==========================================
+  // 2. INTERFAZ GRÁFICA 
 
   @override
   Widget build(BuildContext context) {

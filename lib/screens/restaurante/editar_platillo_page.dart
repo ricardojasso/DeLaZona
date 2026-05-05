@@ -1,8 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-
-// --- IMPORTAMOS EL SERVICIO Y WIDGETS ---
 import '../../services/Restaurante/platillos_service.dart';
 import '../../widgets/restaurante/campo_formulario.dart';
 import '../../widgets/restaurante/selector_categoria.dart';
@@ -49,11 +47,7 @@ class _EditarPlatilloPageState extends State<EditarPlatilloPage> {
     _categoriaSeleccionada = _categoriasDisponibles.contains(catGuardada) ? catGuardada : 'Otros';
     _fotoUrlExistente = widget.datosActuales['foto_url'] ?? '';
   }
-
-  // ==========================================
-  // 1. LÓGICA DE FOTOS Y GUARDADO (CON SERVICIO)
-  // ==========================================
-
+  // 1. LÓGICA DE FOTOS Y GUARDADO
   void _mostrarOpcionesDeFoto() {
     showModalBottomSheet(
       context: context, backgroundColor: Colors.white,
@@ -101,7 +95,7 @@ class _EditarPlatilloPageState extends State<EditarPlatilloPage> {
     try {
       String uidUsuario = widget.datosActuales['id_restaurante'];
 
-      // 🔥 LA MAGIA DEL SERVICIO 🔥
+      // SERVICIO 
       await PlatillosService().actualizarPlatillo(
         idPlatillo: widget.idPlatillo,
         uidRestaurante: uidUsuario,
@@ -124,9 +118,7 @@ class _EditarPlatilloPageState extends State<EditarPlatilloPage> {
     }
   }
 
-  // ==========================================
-  // 2. INTERFAZ GRÁFICA (UI)
-  // ==========================================
+  // 2. INTERFAZ
 
   @override
   Widget build(BuildContext context) {

@@ -6,7 +6,7 @@ class RestauranteService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
-// 1. OBTENER DATOS EN TIEMPO REAL (Traducidos a un Map nativo)
+// 1. OBTENER DATOS EN TIEMPO REAL 
   Stream<Map<String, dynamic>?> streamDatosRestaurante(String uid) {
     return _db.collection('restaurantes').doc(uid).snapshots().map((doc) {
       if (doc.exists && doc.data() != null) {
@@ -15,7 +15,7 @@ class RestauranteService {
       return null;
     });
   }
-  // 2. OBTENER DATOS UNA SOLA VEZ (Para cargar el Perfil al abrir la pantalla)
+  // 2. OBTENER DATOS UNA SOLA VEZ 
   Future<Map<String, dynamic>?> obtenerDatosPerfil(String uid) async {
     DocumentSnapshot doc = await _db.collection('restaurantes').doc(uid).get();
     if (doc.exists) {
@@ -24,7 +24,7 @@ class RestauranteService {
     return null;
   }
 
-  // 3. ACTUALIZAR EL PERFIL (Incluye subida de foto)
+  // 3. ACTUALIZAR EL PERFIL 
   Future<void> actualizarPerfil({
     required String uid,
     required String nombre,
@@ -36,7 +36,7 @@ class RestauranteService {
   }) async {
     String urlFinal = fotoUrlExistente;
 
-    // Si hay foto nueva, la subimos a Storage
+    // Foto Nueva; Subir al Storabe
     if (nuevaFoto != null) {
       final storageRef = _storage.ref().child('perfiles_restaurantes').child('$uid.jpg');
       await storageRef.putFile(nuevaFoto);

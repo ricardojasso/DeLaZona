@@ -1,8 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-
-// --- IMPORTAMOS LOS SERVICIOS Y WIDGETS ---
 import '../../services/auth_service.dart';
 import '../../services/Restaurante/platillos_service.dart';
 import '../../widgets/restaurante/campo_formulario.dart';
@@ -33,9 +31,7 @@ class _AgregarPlatilloPageState extends State<AgregarPlatilloPage> {
 
   final Color _darkBlue = const Color(0xFF0F172A);
 
-  // ==========================================
   // 1. LÓGICA DE FOTOS Y GUARDADO (CON SERVICIO)
-  // ==========================================
 
   void _mostrarOpcionesDeFoto() {
     showModalBottomSheet(
@@ -82,10 +78,8 @@ class _AgregarPlatilloPageState extends State<AgregarPlatilloPage> {
     setState(() => _isLoading = true);
 
     try {
-      // 🔥 OBTENEMOS EL UID DESDE NUESTRO SERVICIO DE AUTENTICACIÓN 🔥
       String uidUsuario = AuthService().usuarioActual!.uid;
       
-      // Llamada al servicio de platillos
       await PlatillosService().crearPlatillo(
         uidRestaurante: uidUsuario,
         nombre: _nombreCtrl.text.trim(),
@@ -106,9 +100,7 @@ class _AgregarPlatilloPageState extends State<AgregarPlatilloPage> {
     }
   }
 
-  // ==========================================
   // 2. INTERFAZ GRÁFICA (UI) 
-  // ==========================================
 
   @override
   Widget build(BuildContext context) {

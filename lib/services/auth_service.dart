@@ -8,10 +8,10 @@ class AuthService {
   // 1. OBTENER EL USUARIO ACTUAL
   User? get usuarioActual => _auth.currentUser;
 
-  // 2. ESCUCHAR EL ESTADO DE LA SESIÓN (Si está logueado o no)
+  // 2. ESCUCHAR EL ESTADO DE LA SESIÓN 
   Stream<User?> get estadoAutenticacion => _auth.authStateChanges();
 
-  // 3. INICIAR SESIÓN (Normal)
+  // 3. INICIAR SESIÓN 
   Future<UserCredential> iniciarSesion({required String email, required String password}) async {
     return await _auth.signInWithEmailAndPassword(
       email: email, 
@@ -24,7 +24,6 @@ class AuthService {
     await _auth.signOut();
   }
 
-  // 5. REGISTRAR UN NUEVO RESTAURANTE (Con base de datos inicial)
   Future<UserCredential> registrarRestaurante({
     required String email,
     required String password,
@@ -36,7 +35,6 @@ class AuthService {
       password: password,
     );
 
-    // B. Creamos su perfil en blanco en Firestore
     if (credencial.user != null) {
       await _db.collection('restaurantes').doc(credencial.user!.uid).set({
         'correo': email,
@@ -58,19 +56,19 @@ class AuthService {
     UserCredential credencial = await _auth.signInWithEmailAndPassword(email: email, password: password);
     String uid = credencial.user!.uid;
 
-    // A. Verificar si es Admin
+    //Admin
     DocumentSnapshot docAdmin = await _db.collection('usuarios_roles').doc(uid).get();
     if (docAdmin.exists && (docAdmin.data() as Map<String, dynamic>)['role'] == 'admin') {
       return {'rol': 'admin', 'nombre': 'Administrador Maestro'};
     }
 
-    // B. Verificar si es Restaurante
+    // Restaurante
     DocumentSnapshot docRest = await _db.collection('restaurantes').doc(uid).get();
     if (docRest.exists) {
       return {'rol': 'restaurante', 'nombre': (docRest.data() as Map<String, dynamic>)['nombre_restaurante'] ?? 'Restaurante'};
     }
 
-    // C. Por defecto asumimos que es Cliente
+    // Cliente
     return {'rol': 'cliente', 'nombre': 'Cliente'};
   }
   // 7. REGISTRAR UN NUEVO CLIENTE
@@ -78,13 +76,11 @@ class AuthService {
     required String email,
     required String password,
   }) async {
-    // A. Creamos la cuenta en Firebase Auth
     UserCredential credencial = await _auth.createUserWithEmailAndPassword(
       email: email,
       password: password,
     );
 
-    // B. Creamos su perfil en la colección de clientes
     if (credencial.user != null) {
       await _db.collection('clientes').doc(credencial.user!.uid).set({
         'email': email,

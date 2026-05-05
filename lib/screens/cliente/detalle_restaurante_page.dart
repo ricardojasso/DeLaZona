@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart'; 
-
-// --- IMPORTAMOS NUESTROS SERVICIOS ---
 import '../../services/auth_service.dart';
 import '../../services/Cliente/cliente_service.dart';
-
-// --- IMPORTAMOS WIDGETS ---
 import '../../widgets/cliente/tarjeta_platillo.dart';
 import '../../widgets/cliente/header_detalle_restaurante.dart';
 import '../../widgets/cliente/info_detalle_restaurante.dart';
@@ -29,8 +25,6 @@ class DetalleRestaurantePage extends StatefulWidget {
 class _DetalleRestaurantePageState extends State<DetalleRestaurantePage> {
   bool _isFollowing = false;
   final Map<String, Map<String, dynamic>> _carrito = {}; // Tu carrito intacto
-  
-  // Instanciamos nuestros servicios
   final ClienteService _clienteService = ClienteService();
   final AuthService _authService = AuthService();
 
@@ -44,7 +38,7 @@ class _DetalleRestaurantePageState extends State<DetalleRestaurantePage> {
     String? uid = _authService.usuarioActual?.uid;
     if (uid == null) return;
     
-    // 🔥 MAGIA DEL SERVICIO 🔥
+    //SERVICIO
     bool follows = await _clienteService.verificarSiSigue(widget.idRestaurante, uid);
     if (mounted) setState(() => _isFollowing = follows);
   }
@@ -52,15 +46,10 @@ class _DetalleRestaurantePageState extends State<DetalleRestaurantePage> {
   void _toggleSeguir() async {
     String? uid = _authService.usuarioActual?.uid;
     if (uid == null) return;
-    
-    // Cambiamos el estado visual inmediatamente para que no se sienta lag
     setState(() => _isFollowing = !_isFollowing);
-
     try {
-      // 🔥 MAGIA DEL SERVICIO 🔥
       await _clienteService.toggleSeguir(widget.idRestaurante, uid, !_isFollowing);
     } catch (e) { 
-      // Si falla, revertimos el botón
       if (mounted) setState(() => _isFollowing = !_isFollowing); 
     }
   }
@@ -85,7 +74,6 @@ class _DetalleRestaurantePageState extends State<DetalleRestaurantePage> {
     }
 
     try {
-      // 🔥 MAGIA DEL SERVICIO 🔥
       _clienteService.registrarClicWhatsapp(widget.idRestaurante);
       
       await launchUrl(Uri.parse("https://wa.me/$num?text=${Uri.encodeComponent(mensaje)}"), mode: LaunchMode.externalApplication);
@@ -134,7 +122,6 @@ class _DetalleRestaurantePageState extends State<DetalleRestaurantePage> {
 
   Widget _buildMenuStream() {
     return StreamBuilder<List<Map<String, dynamic>>>(
-      // 🔥 OBTENEMOS LA LISTA LIMPIA DESDE EL SERVICIO 🔥
       stream: _clienteService.streamMenuRestaurante(widget.idRestaurante),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());

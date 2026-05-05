@@ -4,17 +4,12 @@ class ClienteService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   // 1. OBTENER FLUJO DE RESTAURANTES 
-  // Transforma los Documentos de Firebase en una Lista de Mapas nativa
   Stream<List<Map<String, dynamic>>> streamRestaurantes() {
     return _db.collection('restaurantes').snapshots().map((snapshot) {
       return snapshot.docs.map((doc) {
         var data = doc.data();
-        
-        // Inyectamos el ID del documento en el mapa para poder usarlo en la navegación
-        data['id'] = doc.id; 
-        
-        // Validamos la promoción directamente aquí (Lógica de negocio)
-        data['promocion_activa'] = _validarPromo(data);
+                data['id'] = doc.id; 
+                data['promocion_activa'] = _validarPromo(data);
         
         return data;
       }).toList();
@@ -31,8 +26,7 @@ class ClienteService {
       DateTime hoy = DateTime.now();
       DateTime ini = fIni.toDate();
       DateTime fin = fFin.toDate();
-      
-      // Si hoy es antes del inicio o después del fin, la promo se anula
+      //se quita la promocion
       if (hoy.isBefore(DateTime(ini.year, ini.month, ini.day)) || 
           hoy.isAfter(DateTime(fin.year, fin.month, fin.day, 23, 59, 59))) {
         return ''; 

@@ -4,7 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 class SelectorImagenPlatillo extends StatelessWidget {
   final File? imagenFila;
-  final String? imageUrl; // 🔥 Nueva propiedad para enlaces de internet
+  final String? imageUrl; 
   final VoidCallback onTapCamara;
 
   const SelectorImagenPlatillo({
@@ -19,7 +19,6 @@ class SelectorImagenPlatillo extends StatelessWidget {
     const Color orangeColor = Color(0xFFF26B2A);
     const Color bgColor = Color(0xFFF8F9FA);
 
-    // Lógica inteligente para saber qué dibujar
     Widget imagenMostrar = const Center(child: Icon(Icons.restaurant, size: 50, color: Color(0xFFD1D5DB)));
 
     if (imagenFila != null) {

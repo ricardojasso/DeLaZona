@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
-
-// --- IMPORTAMOS WIDGETS Y PANTALLAS ---
 import 'agregar_platillo_page.dart';
 import 'editar_platillo_page.dart';
 import '../../widgets/restaurante/dialogo_borrar_platillo.dart';
 import '../../widgets/restaurante/tarjeta_platillo_admin.dart';
-
-// --- IMPORTAMOS NUESTROS SERVICIOS ---
 import '../../services/auth_service.dart';
 import '../../services/Restaurante/platillos_service.dart';
 
@@ -18,10 +14,8 @@ class MenuRestaurantePage extends StatefulWidget {
 }
 
 class _MenuRestaurantePageState extends State<MenuRestaurantePage> {
-  // Obtenemos el UID desde nuestro servicio, no desde FirebaseAuth directo
   final String _uid = AuthService().usuarioActual!.uid; 
   final PlatillosService _platillosService = PlatillosService(); 
-  
   final Color _orangeColor = const Color(0xFFF26B2A);
   final Color _darkBlue = const Color(0xFF0F172A);
 
@@ -37,20 +31,18 @@ class _MenuRestaurantePageState extends State<MenuRestaurantePage> {
     }
   }
 
-  // 2. INTERFAZ GRÁFICA (UI)
+  // 2. INTERFAZ GRÁFICA 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: _buildAppBar(),
       body: StreamBuilder<List<Map<String, dynamic>>>(
-        // <-- AHORA USAMOS EL STREAM LIMPIO DEL SERVICIO
         stream: _platillosService.streamPlatillos(_uid),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) return Center(child: CircularProgressIndicator(color: _orangeColor));
           if (!snapshot.hasData || snapshot.data!.isEmpty) return Center(child: Text('Aún no tienes platillos', style: TextStyle(color: Colors.grey.shade400, fontSize: 18, fontWeight: FontWeight.bold)));
 
-          // Agrupación y Ordenamiento usando mapas nativos de Dart
           Map<String, List<Map<String, dynamic>>> platillosAgrupados = {};
           for (var data in snapshot.data!) {
             String categoria = data['categoria']?.toString().trim() ?? 'Otros';

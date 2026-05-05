@@ -6,8 +6,6 @@ import '../../services/auth_service.dart';
 import 'perfil_restaurante_page.dart';
 import 'menu_restaurante_page.dart';
 import 'publicar_oferta_page.dart';
-
-// --- IMPORTAMOS WIDGETS Y EL SERVICIO ---
 import '../../widgets/restaurante/boton_navegacion_panel.dart';
 import '../../widgets/restaurante/cabecera_perfil_restaurante.dart';
 import '../../widgets/restaurante/interruptor_apertura.dart';
@@ -55,7 +53,6 @@ class _PanelRestaurantePageState extends State<PanelRestaurantePage> {
         child: Column(
           children: [
             Expanded(
-              // 🔥 AHORA EL STREAMBUILDER RECIBE UN MAPA NATIVO 🔥
               child: StreamBuilder<Map<String, dynamic>?>(
                 stream: _restauranteService.streamDatosRestaurante(_uid),
                 builder: (context, snapshot) {
@@ -63,7 +60,6 @@ class _PanelRestaurantePageState extends State<PanelRestaurantePage> {
                     return const Center(child: CircularProgressIndicator(color: Color(0xFFF26B2A)));
                   }
 
-                  // Los datos ya vienen listos desde el servicio
                   var data = snapshot.data!;
                   
                   return SingleChildScrollView(

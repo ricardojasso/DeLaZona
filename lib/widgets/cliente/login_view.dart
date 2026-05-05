@@ -6,7 +6,6 @@ import '../../screens/restaurante/panel_restaurante_page.dart';
 import '../../screens/cliente/home_cliente_page.dart';
 
 class LoginView extends StatefulWidget {
-  // Recibimos los "cables" desde el archivo maestro
   final VoidCallback irARegistroCliente;
   final VoidCallback irARegistroRestaurante;
 
@@ -37,7 +36,6 @@ class _LoginViewState extends State<LoginView> {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     try {
-      // 🔥 LA MAGIA DEL SERVICIO: Inicia sesión y nos devuelve qué tipo de usuario es 🔥
       final datosUsuario = await _authService.iniciarSesionYObtenerRol(
         email: _emailCtrl.text.trim(), 
         password: _passCtrl.text.trim()
@@ -48,13 +46,11 @@ class _LoginViewState extends State<LoginView> {
       String rol = datosUsuario['rol'];
       String nombre = datosUsuario['nombre'];
 
-      // Ruteo dependiendo del rol devuelto
-      Widget destino = const HomeClientePage(); // Por defecto es cliente
+      Widget destino = const HomeClientePage(); 
       if (rol == 'restaurante') {
         destino = const PanelRestaurantePage();
       } 
-      // Si el día de mañana creas una página para el administrador, la puedes añadir aquí:
-      // else if (rol == 'admin') destino = const AdminPanelPage();
+
 
       scaffoldMessenger.showSnackBar(SnackBar(content: Text('¡Bienvenido, $nombre!'), backgroundColor: const Color(0xFFF26B2A)));
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => destino));
