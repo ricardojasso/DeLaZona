@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+// ¡ADIÓS A CLOUD FIRESTORE AQUÍ TAMBIÉN! 🎉
 
-// --- TUS WIDGETS GLOBALES (Asegúrate de que las rutas sean correctas) ---
+// --- TUS WIDGETS GLOBALES ---
 import '../../widgets/restaurante/campo_formulario.dart';
 import '../../widgets/restaurante/etiqueta_formulario.dart';
 import '../../widgets/restaurante/tarjeta_informativa_oferta.dart';
 import '../../widgets/restaurante/selector_fecha_oferta.dart';
+
+// --- IMPORTAMOS EL SERVICIO ---
+import '../../services/Restaurante/restaurante_service.dart';
 
 class PublicarOfertaPage extends StatefulWidget {
   const PublicarOfertaPage({super.key});
@@ -16,6 +19,9 @@ class PublicarOfertaPage extends StatefulWidget {
 }
 
 class _PublicarOfertaPageState extends State<PublicarOfertaPage> {
+  final String _uid = FirebaseAuth.instance.currentUser!.uid;
+  final RestauranteService _restauranteService = RestauranteService(); // <-- NUESTRO SERVICIO
+
   final Color _darkBlue = const Color(0xFF0F172A);
   final Color _bgColor = const Color(0xFFF7F8FA);
 
@@ -56,13 +62,14 @@ class _PublicarOfertaPageState extends State<PublicarOfertaPage> {
     }
 
     try {
-      String uid = FirebaseAuth.instance.currentUser!.uid;
-      await FirebaseFirestore.instance.collection('restaurantes').doc(uid).update({
-        'promocion': _tituloCtrl.text.trim(),
-        'promocion_descripcion': _descCtrl.text.trim(),
-        'promocion_inicio': Timestamp.fromDate(_fechaInicio!),
-        'promocion_fin': Timestamp.fromDate(_fechaFin!),
-      });
+      // 🔥 LA MAGIA DEL SERVICIO 🔥
+      await _restauranteService.publicarOferta(
+        uid: _uid,
+        titulo: _tituloCtrl.text.trim(),
+        descripcion: _descCtrl.text.trim(),
+        fechaInicio: _fechaInicio!,
+        fechaFin: _fechaFin!,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('¡Oferta publicada!'), backgroundColor: Colors.green));
@@ -74,13 +81,16 @@ class _PublicarOfertaPageState extends State<PublicarOfertaPage> {
   }
 
   Future<void> _eliminarOferta() async {
-    String uid = FirebaseAuth.instance.currentUser!.uid;
-    await FirebaseFirestore.instance.collection('restaurantes').doc(uid).update({
-      'promocion': '', 'promocion_inicio': FieldValue.delete(), 'promocion_fin': FieldValue.delete(),
-    });
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Oferta eliminada'), backgroundColor: Colors.orange));
-      Navigator.pop(context);
+    try {
+      // 🔥 LA MAGIA DEL SERVICIO 🔥
+      await _restauranteService.eliminarOferta(_uid);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Oferta eliminada'), backgroundColor: Colors.orange));
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
     }
   }
 

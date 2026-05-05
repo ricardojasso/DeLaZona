@@ -1,10 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 
-// --- IMPORTAMOS LOS WIDGETS GLOBALES ---
+// --- IMPORTAMOS EL SERVICIO Y WIDGETS ---
+import '../../services/Restaurante/platillos_service.dart';
 import '../../widgets/restaurante/campo_formulario.dart';
 import '../../widgets/restaurante/selector_categoria.dart';
 import '../../widgets/restaurante/etiqueta_formulario.dart';
@@ -52,7 +51,7 @@ class _EditarPlatilloPageState extends State<EditarPlatilloPage> {
   }
 
   // ==========================================
-  // 1. LÓGICA DE FOTOS Y BASE DE DATOS
+  // 1. LÓGICA DE FOTOS Y GUARDADO (CON SERVICIO)
   // ==========================================
 
   void _mostrarOpcionesDeFoto() {
@@ -100,20 +99,19 @@ class _EditarPlatilloPageState extends State<EditarPlatilloPage> {
     setState(() => _isLoading = true);
 
     try {
-      String urlFinal = _fotoUrlExistente;
-      
-      if (_nuevaFoto != null) {
-        String uidUsuario = widget.datosActuales['id_restaurante'];
-        final storageRef = FirebaseStorage.instance.ref().child('fotos_platillos').child('$uidUsuario-${widget.idPlatillo}.jpg');
-        await storageRef.putFile(_nuevaFoto!);
-        urlFinal = await storageRef.getDownloadURL();
-      }
+      String uidUsuario = widget.datosActuales['id_restaurante'];
 
-      await FirebaseFirestore.instance.collection('platillos').doc(widget.idPlatillo).update({
-        'nombre': _nombreCtrl.text.trim(), 'descripcion': _descripcionCtrl.text.trim(),
-        'precio': double.parse(_precioCtrl.text.trim()), 'categoria': _categoriaSeleccionada, 
-        'foto_url': urlFinal,
-      });
+      // 🔥 LA MAGIA DEL SERVICIO 🔥
+      await PlatillosService().actualizarPlatillo(
+        idPlatillo: widget.idPlatillo,
+        uidRestaurante: uidUsuario,
+        nombre: _nombreCtrl.text.trim(),
+        descripcion: _descripcionCtrl.text.trim(),
+        precio: double.parse(_precioCtrl.text.trim()),
+        categoria: _categoriaSeleccionada,
+        fotoUrlExistente: _fotoUrlExistente,
+        nuevaFoto: _nuevaFoto,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Platillo actualizado'), backgroundColor: Colors.green));
@@ -149,7 +147,6 @@ class _EditarPlatilloPageState extends State<EditarPlatilloPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 🔥 Aquí usamos la propiedad imageUrl nueva
                 SelectorImagenPlatillo(imagenFila: _nuevaFoto, imageUrl: _fotoUrlExistente, onTapCamara: _mostrarOpcionesDeFoto),
                 const SizedBox(height: 40),
 

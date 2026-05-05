@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../services/auth_service.dart';
 import '../../widgets/auth/boton_naranja.dart';
 import '../../widgets/auth/campo_texto_personalizado.dart';
 import '../restaurante/panel_restaurante_page.dart';
@@ -21,9 +20,14 @@ class _RegistroRestauranteViewState extends State<RegistroRestauranteView> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
 
+  final AuthService _authService = AuthService(); // <-- NUESTRA INSTANCIA DEL SERVICIO
+
   @override
   void dispose() {
-    _nombreCtrl.dispose(); _emailCtrl.dispose(); _passCtrl.dispose(); _confirmCtrl.dispose();
+    _nombreCtrl.dispose(); 
+    _emailCtrl.dispose(); 
+    _passCtrl.dispose(); 
+    _confirmCtrl.dispose();
     super.dispose();
   }
 
@@ -33,25 +37,19 @@ class _RegistroRestauranteViewState extends State<RegistroRestauranteView> {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     try {
-      UserCredential credencial = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: _emailCtrl.text.trim(), password: _passCtrl.text.trim(),
+      await _authService.registrarRestaurante(
+        email: _emailCtrl.text.trim(),
+        password: _passCtrl.text.trim(),
+        nombreRestaurante: _nombreCtrl.text.trim(),
       );
-      await FirebaseFirestore.instance.collection('restaurantes').doc(credencial.user!.uid).set({
-        'uid': credencial.user!.uid,
-        'email': _emailCtrl.text.trim(),
-        'nombre_restaurante': _nombreCtrl.text.trim(),
-        'rol': 'restaurante',
-        'fecha_registro': FieldValue.serverTimestamp(),
-        'foto_perfil': '', 'descripcion': '', 'direccion': '',
-      });
 
       if (!mounted) return;
-      scaffoldMessenger.showSnackBar(const SnackBar(content: Text('¡Restaurante registrado!'), backgroundColor: Colors.green));
+      scaffoldMessenger.showSnackBar(const SnackBar(content: Text('¡Restaurante registrado con éxito!'), backgroundColor: Colors.green));
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const PanelRestaurantePage()));
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      scaffoldMessenger.showSnackBar(const SnackBar(content: Text('Error al registrar restaurante.'), backgroundColor: Colors.red));
+      scaffoldMessenger.showSnackBar(const SnackBar(content: Text('Error al registrar restaurante. Revisa tus datos.'), backgroundColor: Colors.red));
     }
   }
 

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../services/auth_service.dart';
 import '../auth/boton_naranja.dart';
 import '../auth/campo_texto_personalizado.dart';
 import '../../screens/restaurante/panel_restaurante_page.dart';
@@ -23,9 +22,12 @@ class _LoginViewState extends State<LoginView> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
 
+  final AuthService _authService = AuthService(); // <-- NUESTRA INSTANCIA DEL SERVICIO
+
   @override
   void dispose() {
-    _emailCtrl.dispose(); _passCtrl.dispose();
+    _emailCtrl.dispose(); 
+    _passCtrl.dispose();
     super.dispose();
   }
 
@@ -35,34 +37,28 @@ class _LoginViewState extends State<LoginView> {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     try {
-      UserCredential credencial = await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailCtrl.text.trim(), password: _passCtrl.text.trim(),
+      // 🔥 LA MAGIA DEL SERVICIO: Inicia sesión y nos devuelve qué tipo de usuario es 🔥
+      final datosUsuario = await _authService.iniciarSesionYObtenerRol(
+        email: _emailCtrl.text.trim(), 
+        password: _passCtrl.text.trim()
       );
 
-      String uid = credencial.user!.uid;
-      String mensaje = 'Accediendo a DeLaZona...';
-      Widget destino = const HomeClientePage(); // Por defecto para evitar nulos
-
-      DocumentSnapshot docAdmin = await FirebaseFirestore.instance.collection('usuarios_roles').doc(uid).get();
-      if (docAdmin.exists && (docAdmin.data() as Map<String, dynamic>)['role'] == 'admin') {
-        mensaje = '¡Bienvenido, Administrador Maestro!';
-      } else {
-        DocumentSnapshot docRest = await FirebaseFirestore.instance.collection('restaurantes').doc(uid).get();
-        if (docRest.exists) {
-          mensaje = '¡Bienvenido, ${docRest['nombre_restaurante'] ?? 'Restaurante'}!';
-          destino = const PanelRestaurantePage();
-        } else {
-          DocumentSnapshot docCli = await FirebaseFirestore.instance.collection('clientes').doc(uid).get();
-          if (docCli.exists) {
-            mensaje = '¡Bienvenido, Cliente!';
-            destino = const HomeClientePage();
-          }
-        }
-      }
-
       if (!mounted) return;
-      scaffoldMessenger.showSnackBar(SnackBar(content: Text(mensaje), backgroundColor: const Color(0xFFF26B2A)));
+
+      String rol = datosUsuario['rol'];
+      String nombre = datosUsuario['nombre'];
+
+      // Ruteo dependiendo del rol devuelto
+      Widget destino = const HomeClientePage(); // Por defecto es cliente
+      if (rol == 'restaurante') {
+        destino = const PanelRestaurantePage();
+      } 
+      // Si el día de mañana creas una página para el administrador, la puedes añadir aquí:
+      // else if (rol == 'admin') destino = const AdminPanelPage();
+
+      scaffoldMessenger.showSnackBar(SnackBar(content: Text('¡Bienvenido, $nombre!'), backgroundColor: const Color(0xFFF26B2A)));
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => destino));
+
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
@@ -92,13 +88,13 @@ class _LoginViewState extends State<LoginView> {
           const SizedBox(height: 16),
           
           OutlinedButton(
-            onPressed: widget.irARegistroCliente, // Usamos el cable de conexión
+            onPressed: widget.irARegistroCliente, 
             style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), side: const BorderSide(color: Colors.blue), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
             child: const Text('Registrarme como Cliente', style: TextStyle(color: Colors.blue)),
           ),
           const SizedBox(height: 12),
           OutlinedButton(
-            onPressed: widget.irARegistroRestaurante, // Usamos el cable de conexión
+            onPressed: widget.irARegistroRestaurante, 
             style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), side: const BorderSide(color: orangeColor), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
             child: const Text('Registrar mi Restaurante', style: TextStyle(color: orangeColor)),
           ),

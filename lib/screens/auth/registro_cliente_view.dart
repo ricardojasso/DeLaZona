@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+
+// --- IMPORTAMOS EL SERVICIO ---
+import '../../services/auth_service.dart';
+
+// --- WIDGETS Y PANTALLAS ---
 import '../../widgets/auth/campo_texto_personalizado.dart';
 import '../cliente/home_cliente_page.dart';
 
@@ -19,9 +22,13 @@ class _RegistroClienteViewState extends State<RegistroClienteView> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
 
+  final AuthService _authService = AuthService(); // <-- NUESTRA INSTANCIA DEL SERVICIO
+
   @override
   void dispose() {
-    _emailCtrl.dispose(); _passCtrl.dispose(); _confirmCtrl.dispose();
+    _emailCtrl.dispose(); 
+    _passCtrl.dispose(); 
+    _confirmCtrl.dispose();
     super.dispose();
   }
 
@@ -31,14 +38,11 @@ class _RegistroClienteViewState extends State<RegistroClienteView> {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     try {
-      UserCredential credencial = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: _emailCtrl.text.trim(), password: _passCtrl.text.trim(),
+      // 🔥 LA MAGIA DEL SERVICIO 🔥
+      await _authService.registrarCliente(
+        email: _emailCtrl.text.trim(), 
+        password: _passCtrl.text.trim(),
       );
-      await FirebaseFirestore.instance.collection('clientes').doc(credencial.user!.uid).set({
-        'email': _emailCtrl.text.trim(),
-        'rol': 'cliente',
-        'fecha_registro': FieldValue.serverTimestamp(),
-      });
 
       if (!mounted) return;
       scaffoldMessenger.showSnackBar(const SnackBar(content: Text('¡Cuenta creada!'), backgroundColor: Colors.green));
@@ -74,7 +78,7 @@ class _RegistroClienteViewState extends State<RegistroClienteView> {
           ),
           const SizedBox(height: 24),
           TextButton(
-            onPressed: widget.volverAlLogin, // Usamos el cable para regresar
+            onPressed: widget.volverAlLogin, 
             child: const Text('← Volver al Acceso Principal', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w500)),
           ),
         ],

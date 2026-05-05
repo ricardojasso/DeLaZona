@@ -1,18 +1,18 @@
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-
+import '../../services/auth_service.dart';
 import 'perfil_restaurante_page.dart';
 import 'menu_restaurante_page.dart';
 import 'publicar_oferta_page.dart';
 
-// --- IMPORTAMOS TODOS TUS WIDGETS ---
+// --- IMPORTAMOS WIDGETS Y EL SERVICIO ---
 import '../../widgets/restaurante/boton_navegacion_panel.dart';
 import '../../widgets/restaurante/cabecera_perfil_restaurante.dart';
 import '../../widgets/restaurante/interruptor_apertura.dart';
 import '../../widgets/restaurante/panel_estadisticas.dart';
+import '../../services/Restaurante/restaurante_service.dart';
 
 class PanelRestaurantePage extends StatefulWidget {
   const PanelRestaurantePage({super.key});
@@ -23,6 +23,7 @@ class PanelRestaurantePage extends StatefulWidget {
 
 class _PanelRestaurantePageState extends State<PanelRestaurantePage> {
   final String _uid = FirebaseAuth.instance.currentUser!.uid;
+  final RestauranteService _restauranteService = RestauranteService();
 
   @override
   void initState() {
@@ -38,7 +39,7 @@ class _PanelRestaurantePageState extends State<PanelRestaurantePage> {
       if (status.isGranted) {
         String? token = await FirebaseMessaging.instance.getToken();
         if (token != null) {
-          await FirebaseFirestore.instance.collection('restaurantes').doc(_uid).set({'fcm_token': token}, SetOptions(merge: true));
+          await _restauranteService.guardarFCMToken(_uid, token);
         }
       }
     } catch (e) {
@@ -54,16 +55,17 @@ class _PanelRestaurantePageState extends State<PanelRestaurantePage> {
         child: Column(
           children: [
             Expanded(
-              child: StreamBuilder<DocumentSnapshot>(
-                stream: FirebaseFirestore.instance.collection('restaurantes').doc(_uid).snapshots(),
+              // 🔥 AHORA EL STREAMBUILDER RECIBE UN MAPA NATIVO 🔥
+              child: StreamBuilder<Map<String, dynamic>?>(
+                stream: _restauranteService.streamDatosRestaurante(_uid),
                 builder: (context, snapshot) {
-                  if (!snapshot.hasData || !snapshot.data!.exists) {
+                  if (!snapshot.hasData || snapshot.data == null) {
                     return const Center(child: CircularProgressIndicator(color: Color(0xFFF26B2A)));
                   }
 
-                  var data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
+                  // Los datos ya vienen listos desde el servicio
+                  var data = snapshot.data!;
                   
-                  // Aquí simplemente acomodamos nuestros bloques visuales
                   return SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 30.0), 
                     child: Column(
@@ -74,18 +76,19 @@ class _PanelRestaurantePageState extends State<PanelRestaurantePage> {
                           onAjustesTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PerfilRestaurantePage())),
                         ),
                         const SizedBox(height: 32),
+                        
                         InterruptorApertura(
                           isAbierto: data['is_abierto'] ?? true,
-                          onChanged: (val) => FirebaseFirestore.instance.collection('restaurantes').doc(_uid).update({'is_abierto': val}),
+                          onChanged: (val) => _restauranteService.cambiarEstadoApertura(_uid, val),
                         ),
                         const SizedBox(height: 32),
+                        
                         PanelEstadisticas(
                           totalSeguidores: (data['seguidores'] ?? []).length.toString(),
                           totalWhatsApps: (data['clics_whatsapp'] ?? 0).toString(),
                         ),
                         const SizedBox(height: 40),
                         
-                        // Botones de Navegación
                         BotonNavegacionPanel(titulo: 'Gestionar Menú', subtitulo: 'PLATILLOS Y PRECIOS', icono: Icons.local_pizza_outlined, colorIcono: const Color(0xFFF26B2A), destino: const MenuRestaurantePage()),
                         const SizedBox(height: 20),
                         BotonNavegacionPanel(titulo: 'Publicar Oferta', subtitulo: 'PROMO RELÁMPAGO', icono: Icons.local_offer_outlined, colorIcono: Colors.blue.shade400, destino: const PublicarOfertaPage()),
@@ -96,11 +99,10 @@ class _PanelRestaurantePageState extends State<PanelRestaurantePage> {
               ),
             ),
             
-            // Botón de Cerrar Sesión
             Padding(
               padding: const EdgeInsets.only(bottom: 30.0, top: 10),
               child: TextButton.icon(
-                onPressed: () => FirebaseAuth.instance.signOut(),
+                onPressed: () => AuthService().cerrarSesion(),
                 icon: Icon(Icons.logout, color: Colors.grey.shade400, size: 20),
                 label: Text('CERRAR SESIÓN', style: TextStyle(color: Colors.grey.shade400, fontWeight: FontWeight.bold, letterSpacing: 2.0, fontSize: 14)),
               ),

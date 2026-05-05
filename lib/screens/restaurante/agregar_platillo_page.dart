@@ -1,9 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+
+// --- IMPORTAMOS LOS SERVICIOS Y WIDGETS ---
+import '../../services/auth_service.dart';
+import '../../services/Restaurante/platillos_service.dart';
 import '../../widgets/restaurante/campo_formulario.dart';
 import '../../widgets/restaurante/selector_categoria.dart';
 import '../../widgets/restaurante/etiqueta_formulario.dart';
@@ -33,7 +34,7 @@ class _AgregarPlatilloPageState extends State<AgregarPlatilloPage> {
   final Color _darkBlue = const Color(0xFF0F172A);
 
   // ==========================================
-  // 1. LÓGICA DE FOTOS Y BASE DE DATOS
+  // 1. LÓGICA DE FOTOS Y GUARDADO (CON SERVICIO)
   // ==========================================
 
   void _mostrarOpcionesDeFoto() {
@@ -81,21 +82,18 @@ class _AgregarPlatilloPageState extends State<AgregarPlatilloPage> {
     setState(() => _isLoading = true);
 
     try {
-      String uidUsuario = FirebaseAuth.instance.currentUser!.uid;
-      String idPlatilloUnico = DateTime.now().millisecondsSinceEpoch.toString(); 
-      String fotoUrl = '';
+      // 🔥 OBTENEMOS EL UID DESDE NUESTRO SERVICIO DE AUTENTICACIÓN 🔥
+      String uidUsuario = AuthService().usuarioActual!.uid;
       
-      if (_fotoPlatillo != null) {
-        final storageRef = FirebaseStorage.instance.ref().child('fotos_platillos').child('$uidUsuario-$idPlatilloUnico.jpg');
-        await storageRef.putFile(_fotoPlatillo!);
-        fotoUrl = await storageRef.getDownloadURL();
-      }
-
-      await FirebaseFirestore.instance.collection('platillos').add({
-        'id_restaurante': uidUsuario, 'nombre': _nombreCtrl.text.trim(),
-        'descripcion': _descripcionCtrl.text.trim(), 'precio': double.parse(_precioCtrl.text.trim()), 
-        'categoria': _categoriaSeleccionada, 'foto_url': fotoUrl, 'fecha_creacion': FieldValue.serverTimestamp(),
-      });
+      // Llamada al servicio de platillos
+      await PlatillosService().crearPlatillo(
+        uidRestaurante: uidUsuario,
+        nombre: _nombreCtrl.text.trim(),
+        descripcion: _descripcionCtrl.text.trim(),
+        precio: double.parse(_precioCtrl.text.trim()),
+        categoria: _categoriaSeleccionada,
+        fotoPlatillo: _fotoPlatillo,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Platillo creado con éxito'), backgroundColor: Colors.green));

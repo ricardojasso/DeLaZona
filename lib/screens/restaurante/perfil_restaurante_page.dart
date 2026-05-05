@@ -1,12 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
+
+// --- IMPORTAMOS WIDGETS Y EL NUEVO SERVICIO ---
 import '../../widgets/restaurante/campo_formulario.dart';
 import '../../widgets/restaurante/etiqueta_formulario.dart';
-import '../../widgets/restaurante/selector_imagen_platillo.dart'; // ¡Lo reciclamos para el perfil!
+import '../../widgets/restaurante/selector_imagen_platillo.dart'; 
+import '../../services/Restaurante/restaurante_service.dart';
 
 class PerfilRestaurantePage extends StatefulWidget {
   const PerfilRestaurantePage({super.key});
@@ -17,6 +18,8 @@ class PerfilRestaurantePage extends StatefulWidget {
 
 class _PerfilRestaurantePageState extends State<PerfilRestaurantePage> {
   final String _uid = FirebaseAuth.instance.currentUser!.uid;
+  final RestauranteService _restauranteService = RestauranteService(); // <-- NUESTRO SERVICIO
+  
   bool _isLoading = true;
   String _fotoUrl = '';
   File? _nuevaFoto;
@@ -36,14 +39,17 @@ class _PerfilRestaurantePageState extends State<PerfilRestaurantePage> {
     _cargarDatos();
   }
 
-  // 1. LÓGICA DE BASE DE DATOS Y FOTOS
+  // ==========================================
+  // 1. LÓGICA DE DATOS CON EL SERVICIO
+  // ==========================================
 
   Future<void> _cargarDatos() async {
     try {
-      DocumentSnapshot doc = await FirebaseFirestore.instance.collection('restaurantes').doc(_uid).get();
-      if (doc.exists && mounted) {
+      // Usamos el servicio para traer los datos
+      var data = await _restauranteService.obtenerDatosPerfil(_uid);
+      
+      if (data != null && mounted) {
         setState(() {
-          var data = doc.data() as Map<String, dynamic>;
           _nombreCtrl.text = data['nombre_restaurante'] ?? '';
           _descripcionCtrl.text = data['descripcion'] ?? '';
           _whatsappCtrl.text = data['whatsapp'] ?? '';
@@ -51,6 +57,8 @@ class _PerfilRestaurantePageState extends State<PerfilRestaurantePage> {
           _fotoUrl = data['foto_perfil'] ?? '';
           _isLoading = false;
         });
+      } else {
+        if (mounted) setState(() => _isLoading = false);
       }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
@@ -96,21 +104,16 @@ class _PerfilRestaurantePageState extends State<PerfilRestaurantePage> {
   Future<void> _guardarPerfil() async {
     setState(() => _isLoading = true);
     try {
-      String urlFinal = _fotoUrl;
-
-      if (_nuevaFoto != null) {
-        final storageRef = FirebaseStorage.instance.ref().child('perfiles_restaurantes').child('$_uid.jpg');
-        await storageRef.putFile(_nuevaFoto!);
-        urlFinal = await storageRef.getDownloadURL();
-      }
-
-      await FirebaseFirestore.instance.collection('restaurantes').doc(_uid).update({
-        'nombre_restaurante': _nombreCtrl.text.trim(),
-        'whatsapp': _whatsappCtrl.text.trim(),
-        'direccion': _direccionCtrl.text.trim(),
-        'descripcion': _descripcionCtrl.text.trim(),
-        'foto_perfil': urlFinal,
-      });
+      // 🔥 LA MAGIA DEL SERVICIO 🔥
+      await _restauranteService.actualizarPerfil(
+        uid: _uid,
+        nombre: _nombreCtrl.text.trim(),
+        descripcion: _descripcionCtrl.text.trim(),
+        whatsapp: _whatsappCtrl.text.trim(),
+        direccion: _direccionCtrl.text.trim(),
+        fotoUrlExistente: _fotoUrl,
+        nuevaFoto: _nuevaFoto,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Perfil guardado con éxito'), backgroundColor: Colors.green));
@@ -123,7 +126,9 @@ class _PerfilRestaurantePageState extends State<PerfilRestaurantePage> {
     }
   }
 
+  // ==========================================
   // 2. INTERFAZ GRÁFICA (UI)
+  // ==========================================
 
   @override
   Widget build(BuildContext context) {
@@ -144,7 +149,6 @@ class _PerfilRestaurantePageState extends State<PerfilRestaurantePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 🔥 Reutilizamos el widget de imagen 🔥
                   SelectorImagenPlatillo(
                     imagenFila: _nuevaFoto, 
                     imageUrl: _fotoUrl, 
@@ -152,7 +156,6 @@ class _PerfilRestaurantePageState extends State<PerfilRestaurantePage> {
                   ),
                   const SizedBox(height: 40),
 
-                  // 🔥 Reutilizamos los campos de formulario 🔥
                   const EtiquetaFormulario(texto: 'NOMBRE DEL LOCAL'),
                   CampoFormulario(controlador: _nombreCtrl, hint: 'Ej. Taquería El Paisa', icono: Icons.storefront),
                   

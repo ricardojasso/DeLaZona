@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart'; 
-import 'package:firebase_auth/firebase_auth.dart'; 
+
+// --- IMPORTAMOS NUESTROS SERVICIOS ---
+import '../../services/auth_service.dart';
+import '../../services/Cliente/cliente_service.dart';
+
+// --- IMPORTAMOS WIDGETS ---
 import '../../widgets/cliente/tarjeta_platillo.dart';
 import '../../widgets/cliente/header_detalle_restaurante.dart';
 import '../../widgets/cliente/info_detalle_restaurante.dart';
@@ -24,42 +28,41 @@ class DetalleRestaurantePage extends StatefulWidget {
 
 class _DetalleRestaurantePageState extends State<DetalleRestaurantePage> {
   bool _isFollowing = false;
-  final Map<String, Map<String, dynamic>> _carrito = {};
-  late Stream<QuerySnapshot> _menuStream;
+  final Map<String, Map<String, dynamic>> _carrito = {}; // Tu carrito intacto
+  
+  // Instanciamos nuestros servicios
+  final ClienteService _clienteService = ClienteService();
+  final AuthService _authService = AuthService();
 
   @override
   void initState() {
     super.initState();
     _verificarSiSigue(); 
-    _menuStream = FirebaseFirestore.instance.collection('platillos').where('id_restaurante', isEqualTo: widget.idRestaurante).snapshots();
   }
 
   void _verificarSiSigue() async {
-    String? uid = FirebaseAuth.instance.currentUser?.uid;
+    String? uid = _authService.usuarioActual?.uid;
     if (uid == null) return;
-    DocumentSnapshot doc = await FirebaseFirestore.instance.collection('restaurantes').doc(widget.idRestaurante).get();
-    if (doc.exists && mounted && ((doc.data() as Map<String, dynamic>)['seguidores'] ?? []).contains(uid)) {
-      setState(() => _isFollowing = true);
-    }
+    
+    // 🔥 MAGIA DEL SERVICIO 🔥
+    bool follows = await _clienteService.verificarSiSigue(widget.idRestaurante, uid);
+    if (mounted) setState(() => _isFollowing = follows);
   }
 
   void _toggleSeguir() async {
-    String? uid = FirebaseAuth.instance.currentUser?.uid;
+    String? uid = _authService.usuarioActual?.uid;
     if (uid == null) return;
+    
+    // Cambiamos el estado visual inmediatamente para que no se sienta lag
     setState(() => _isFollowing = !_isFollowing);
 
-    DocumentReference ref = FirebaseFirestore.instance.collection('restaurantes').doc(widget.idRestaurante);
     try {
-      if (_isFollowing) {
-        await ref.update({'seguidores': FieldValue.arrayUnion([uid])});
-        await FirebaseFirestore.instance.collection('notificaciones').add({
-          'restauranteId': widget.idRestaurante, 'clienteId': uid, 'titulo': '¡Nuevo Seguidor! 🎉',
-          'mensaje': 'Alguien nuevo sigue tu restaurante.', 'tipo': 'nuevo_seguidor', 'leida': false, 'fecha': FieldValue.serverTimestamp(),
-        });
-      } else {
-        await ref.update({'seguidores': FieldValue.arrayRemove([uid])});
-      }
-    } catch (e) { setState(() => _isFollowing = !_isFollowing); }
+      // 🔥 MAGIA DEL SERVICIO 🔥
+      await _clienteService.toggleSeguir(widget.idRestaurante, uid, !_isFollowing);
+    } catch (e) { 
+      // Si falla, revertimos el botón
+      if (mounted) setState(() => _isFollowing = !_isFollowing); 
+    }
   }
 
   void _hacerPedido() async {
@@ -82,7 +85,9 @@ class _DetalleRestaurantePageState extends State<DetalleRestaurantePage> {
     }
 
     try {
-      FirebaseFirestore.instance.collection('restaurantes').doc(widget.idRestaurante).set({'clics_whatsapp': FieldValue.increment(1)}, SetOptions(merge: true));
+      // 🔥 MAGIA DEL SERVICIO 🔥
+      _clienteService.registrarClicWhatsapp(widget.idRestaurante);
+      
       await launchUrl(Uri.parse("https://wa.me/$num?text=${Uri.encodeComponent(mensaje)}"), mode: LaunchMode.externalApplication);
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error al abrir WhatsApp.'), backgroundColor: Colors.red));
@@ -127,17 +132,17 @@ class _DetalleRestaurantePageState extends State<DetalleRestaurantePage> {
     );
   }
 
-//carrito se queda asi 
   Widget _buildMenuStream() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _menuStream,
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      // 🔥 OBTENEMOS LA LISTA LIMPIA DESDE EL SERVICIO 🔥
+      stream: _clienteService.streamMenuRestaurante(widget.idRestaurante),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return Center(child: Padding(padding: const EdgeInsets.all(20), child: Text('Menú no disponible.', style: TextStyle(color: Colors.grey.shade400, fontWeight: FontWeight.bold))));
+        if (!snapshot.hasData || snapshot.data!.isEmpty) return Center(child: Padding(padding: const EdgeInsets.all(20), child: Text('Menú no disponible.', style: TextStyle(color: Colors.grey.shade400, fontWeight: FontWeight.bold))));
 
-        Map<String, List<QueryDocumentSnapshot>> categoriasMap = {};
-        for (var doc in snapshot.data!.docs) {
-          categoriasMap.putIfAbsent((doc.data() as Map)['categoria']?.toString().trim() ?? 'Otros', () => []).add(doc);
+        Map<String, List<Map<String, dynamic>>> categoriasMap = {};
+        for (var data in snapshot.data!) {
+          categoriasMap.putIfAbsent(data['categoria']?.toString().trim() ?? 'Otros', () => []).add(data);
         }
 
         final orden = ['Entradas y Aperitivos', 'Platos Fuertes', 'Desayunos', 'Bebidas', 'Postres', 'Snacks y Botanas', 'Guarniciones o Extras', 'Especialidades', 'Otros'];
@@ -151,19 +156,21 @@ class _DetalleRestaurantePageState extends State<DetalleRestaurantePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(padding: const EdgeInsets.only(top: 24, bottom: 16, left: 8), child: Text(cat.toUpperCase(), style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1.5))),
-                ...categoriasMap[cat]!.map((doc) {
-                  Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+                
+                ...categoriasMap[cat]!.map((data) {
                   String nombre = data['nombre'] ?? 'Platillo';
                   int cant = _carrito.containsKey(nombre) ? _carrito[nombre]!['cantidad'] : 0;
 
                   return TarjetaPlatillo(
                     data: data, nombrePlatillo: nombre, cantidadActual: cant, colorTema: widget.colorTema, isAbierto: widget.isAbierto,
                     onAdd: () => setState(() => _carrito[nombre] = {'cantidad': cant + 1, 'precio': data['precio']}),
-                    onRemove: () => setState(() { if (cant > 1) {
-                      _carrito[nombre]!['cantidad'] = cant - 1;
-                    } else {
-                      _carrito.remove(nombre);
-                    } }),
+                    onRemove: () => setState(() { 
+                      if (cant > 1) {
+                        _carrito[nombre]!['cantidad'] = cant - 1;
+                      } else {
+                        _carrito.remove(nombre);
+                      } 
+                    }),
                   );
                 }),
               ],

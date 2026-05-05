@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
+// --- IMPORTAMOS WIDGETS Y PANTALLAS ---
 import 'detalle_restaurante_page.dart';
 import '../../widgets/cliente/buscador_cliente.dart';
 import '../../widgets/cliente/tarjeta_restaurante.dart';
+
+// --- IMPORTAMOS NUESTROS SERVICIOS ---
+import '../../services/auth_service.dart';
+import '../../services/Cliente/cliente_service.dart';
 
 class HomeClientePage extends StatefulWidget {
   const HomeClientePage({super.key});
@@ -17,6 +21,8 @@ class _HomeClientePageState extends State<HomeClientePage> {
   final Color _darkBlue = const Color(0xFF0F172A);
   
   String _textoBusqueda = "";
+
+  final ClienteService _clienteService = ClienteService(); // Instancia del servicio
 
   final List<Color> _cardColors = [
     Colors.green.shade500, Colors.red.shade500, Colors.blue.shade500,
@@ -61,7 +67,7 @@ class _HomeClientePageState extends State<HomeClientePage> {
             decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(14)),
             child: IconButton(
               icon: Icon(Icons.logout_rounded, color: Colors.red.shade400, size: 20),
-              onPressed: () => FirebaseAuth.instance.signOut(),
+              onPressed: () => AuthService().cerrarSesion(), // <-- Uso de AuthService
             ),
           ),
         )
@@ -88,19 +94,20 @@ class _HomeClientePageState extends State<HomeClientePage> {
   }
 
   Widget _buildListaRestaurantes() {
-    return StreamBuilder(
-      stream: FirebaseFirestore.instance.collection('restaurantes').snapshots(),
-      builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      // 🔥 Usamos nuestro servicio limpio 🔥
+      stream: _clienteService.streamRestaurantes(),
+      builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) return const SliverFillRemaining(child: Center(child: CircularProgressIndicator()));
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return _buildMensajeVacio('Aún no hay restaurantes :(');
+        if (!snapshot.hasData || snapshot.data!.isEmpty) return _buildMensajeVacio('Aún no hay restaurantes :(');
 
-        // Lógica de filtrado
-        var filtrados = snapshot.data!.docs.where((doc) {
-          var d = doc.data() as Map<String, dynamic>;
-          if (d['isVisible'] == false) return false;
+        // Lógica de filtrado en memoria
+        var filtrados = snapshot.data!.where((data) {
+          if (data['isVisible'] == false) return false;
           if (_textoBusqueda.isEmpty) return true;
-          return (d['nombre_restaurante']?.toString().toLowerCase().contains(_textoBusqueda) ?? false) ||
-                 (d['descripcion']?.toString().toLowerCase().contains(_textoBusqueda) ?? false);
+          
+          return (data['nombre_restaurante']?.toString().toLowerCase().contains(_textoBusqueda) ?? false) ||
+                 (data['descripcion']?.toString().toLowerCase().contains(_textoBusqueda) ?? false);
         }).toList();
 
         if (filtrados.isEmpty) return _buildMensajeVacio('No encontramos "$_textoBusqueda"', icon: Icons.search_off_rounded);
@@ -110,9 +117,9 @@ class _HomeClientePageState extends State<HomeClientePage> {
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
           sliver: SliverList(
             delegate: SliverChildBuilderDelegate((context, i) {
-              var data = filtrados[i].data() as Map<String, dynamic>;
+              var data = filtrados[i];
               String nombre = data['nombre_restaurante'] ?? 'Restaurante';
-              String promo = _validarPromo(data);
+              String promo = data['promocion_activa'] ?? ''; // Ya viene pre-validada desde el servicio
               Color color = _cardColors[i % _cardColors.length];
 
               return TarjetaRestaurante(
@@ -121,7 +128,8 @@ class _HomeClientePageState extends State<HomeClientePage> {
                 tituloGigante: nombre.split(' ')[0].toUpperCase(), colorTema: color,
                 isAbierto: data['is_abierto'] ?? true, promocion: promo,
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DetalleRestaurantePage(
-                  idRestaurante: filtrados[i].id, nombre: nombre, colorTema: color,
+                  idRestaurante: data['id'], // Tomamos el ID que inyectamos
+                  nombre: nombre, colorTema: color,
                   tituloGigante: nombre.split(' ')[0].toUpperCase(), descripcion: data['descripcion'] ?? '',
                   direccion: data['direccion'] ?? '', whatsapp: data['whatsapp'] ?? '',
                   imagenUrl: data['foto_perfil'] ?? data['imagen_perfil'] ?? '', promocion: promo, isAbierto: data['is_abierto'] ?? true,
@@ -132,22 +140,6 @@ class _HomeClientePageState extends State<HomeClientePage> {
         );
       },
     );
-  }
-
-
-  // Valida que la fecha de la promo sea correcta
-  String _validarPromo(Map<String, dynamic> data) {
-    String p = data['promocion'] ?? data['promociones'] ?? data['oferta'] ?? '';
-    Timestamp? fIni = data['promocion_inicio'];
-    Timestamp? fFin = data['promocion_fin'];
-    
-    if (p.isNotEmpty && fIni != null && fFin != null) {
-      DateTime hoy = DateTime.now(), ini = fIni.toDate(), fin = fFin.toDate();
-      if (hoy.isBefore(DateTime(ini.year, ini.month, ini.day)) || hoy.isAfter(DateTime(fin.year, fin.month, fin.day, 23, 59, 59))) {
-        return ''; 
-      }
-    }
-    return p;
   }
 
   // Dibuja la pantalla cuando no hay resultados
