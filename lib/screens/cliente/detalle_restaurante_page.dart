@@ -25,6 +25,9 @@ class DetalleRestaurantePage extends StatefulWidget {
 class _DetalleRestaurantePageState extends State<DetalleRestaurantePage> {
   bool _isFollowing = false;
   final Map<String, Map<String, dynamic>> _carrito = {}; // Tu carrito intacto
+  
+  late Stream<List<Map<String, dynamic>>> _menuStream;
+
   final ClienteService _clienteService = ClienteService();
   final AuthService _authService = AuthService();
 
@@ -32,6 +35,8 @@ class _DetalleRestaurantePageState extends State<DetalleRestaurantePage> {
   void initState() {
     super.initState();
     _verificarSiSigue(); 
+    
+    _menuStream = _clienteService.streamMenuRestaurante(widget.idRestaurante);
   }
 
   void _verificarSiSigue() async {
@@ -122,7 +127,7 @@ class _DetalleRestaurantePageState extends State<DetalleRestaurantePage> {
 
   Widget _buildMenuStream() {
     return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: _clienteService.streamMenuRestaurante(widget.idRestaurante),
+      stream: _menuStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
         if (!snapshot.hasData || snapshot.data!.isEmpty) return Center(child: Padding(padding: const EdgeInsets.all(20), child: Text('Menú no disponible.', style: TextStyle(color: Colors.grey.shade400, fontWeight: FontWeight.bold))));
