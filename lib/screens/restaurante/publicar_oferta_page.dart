@@ -1,33 +1,64 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // Solo para leer el Timestamp
 import '../../widgets/restaurante/campo_formulario.dart';
 import '../../widgets/restaurante/etiqueta_formulario.dart';
 import '../../widgets/restaurante/tarjeta_informativa_oferta.dart';
 import '../../widgets/restaurante/selector_fecha_oferta.dart';
 import '../../services/Restaurante/restaurante_service.dart';
+import '../../services/auth_service.dart'; // Usamos el AuthService limpio
 
 class PublicarOfertaPage extends StatefulWidget {
-  const PublicarOfertaPage({super.key});
+  // 🔥 NUEVO: Recibe los datos de la oferta si ya existe una 🔥
+  final Map<String, dynamic>? datosOfertaActual;
+
+  const PublicarOfertaPage({super.key, this.datosOfertaActual});
 
   @override
   State<PublicarOfertaPage> createState() => _PublicarOfertaPageState();
 }
 
 class _PublicarOfertaPageState extends State<PublicarOfertaPage> {
-  final String _uid = FirebaseAuth.instance.currentUser!.uid;
-  final RestauranteService _restauranteService = RestauranteService(); // <-- NUESTRO SERVICIO
+  final String _uid = AuthService().usuarioActual!.uid;
+  final RestauranteService _restauranteService = RestauranteService();
 
   final Color _darkBlue = const Color(0xFF0F172A);
   final Color _bgColor = const Color(0xFFF7F8FA);
 
-  final TextEditingController _tituloCtrl = TextEditingController();
-  final TextEditingController _descCtrl = TextEditingController();
+  late TextEditingController _tituloCtrl;
+  late TextEditingController _descCtrl;
 
   DateTime? _fechaInicio;
   DateTime? _fechaFin;
 
-  // 1. LÓGICA DE CALENDARIO Y BASE DE DATOS
+  @override
+  void initState() {
+    super.initState();
+    _tituloCtrl = TextEditingController();
+    _descCtrl = TextEditingController();
 
+    if (widget.datosOfertaActual != null) {
+      final data = widget.datosOfertaActual!;
+      
+      _tituloCtrl.text = data['promocion'] ?? data['oferta'] ?? data['titulo_oferta'] ?? '';
+      _descCtrl.text = data['promocion_descripcion'] ?? data['descripcion_oferta'] ?? '';
+
+      if (data['promocion_inicio'] != null) {
+        _fechaInicio = (data['promocion_inicio'] as Timestamp).toDate();
+      }
+      if (data['promocion_fin'] != null) {
+        _fechaFin = (data['promocion_fin'] as Timestamp).toDate();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _tituloCtrl.dispose();
+    _descCtrl.dispose();
+    super.dispose();
+  }
+
+  // 1. LÓGICA DE CALENDARIO Y BASE DE DATOS
   Future<void> _seleccionarFechas() async {
     DateTimeRange? rango = await showDateRangePicker(
       context: context,
@@ -64,7 +95,7 @@ class _PublicarOfertaPageState extends State<PublicarOfertaPage> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('¡Oferta publicada!'), backgroundColor: Colors.green));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('¡Oferta guardada!'), backgroundColor: Colors.green));
         Navigator.pop(context);
       }
     } catch (e) {
@@ -86,16 +117,20 @@ class _PublicarOfertaPageState extends State<PublicarOfertaPage> {
   }
 
   // 2. INTERFAZ GRÁFICA 
-
   @override
   Widget build(BuildContext context) {
+    bool isEditando = widget.datosOfertaActual != null;
+
     return Scaffold(
       backgroundColor: _bgColor,
       appBar: AppBar(
         backgroundColor: _bgColor, elevation: 0, centerTitle: true,
         leading: IconButton(icon: Icon(Icons.arrow_back_rounded, color: _darkBlue), onPressed: () => Navigator.pop(context)),
-        title: Text('Publicar Oferta', style: TextStyle(color: _darkBlue, fontSize: 22, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic)),
-        actions: [IconButton(icon: const Icon(Icons.delete_outline_rounded, color: Colors.red), tooltip: 'Eliminar oferta actual', onPressed: _eliminarOferta)],
+        title: Text(isEditando ? 'Editar Oferta' : 'Publicar Oferta', style: TextStyle(color: _darkBlue, fontSize: 22, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic)),
+        actions: [
+          if (isEditando) // Solo mostramos el bote de basura si la oferta ya existía
+            IconButton(icon: const Icon(Icons.delete_outline_rounded, color: Colors.red), tooltip: 'Eliminar oferta actual', onPressed: _eliminarOferta)
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
@@ -120,7 +155,8 @@ class _PublicarOfertaPageState extends State<PublicarOfertaPage> {
             ElevatedButton.icon(
               onPressed: _publicarOferta,
               icon: const Icon(Icons.check_rounded, color: Colors.white),
-              label: const Text('PUBLICAR AHORA', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 2.0)),
+              // boton cambia si es crear o editar
+              label: Text(isEditando ? 'GUARDAR CAMBIOS' : 'PUBLICAR AHORA', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 2.0)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _darkBlue, minimumSize: const Size(double.infinity, 65),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)), elevation: 10, shadowColor: _darkBlue.withOpacity(0.4),

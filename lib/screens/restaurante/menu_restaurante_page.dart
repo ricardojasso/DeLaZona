@@ -51,7 +51,7 @@ class _MenuRestaurantePageState extends State<MenuRestaurantePage> {
 
           final orden = ['Entradas y Aperitivos', 'Platos Fuertes', 'Desayunos', 'Bebidas', 'Postres', 'Snacks y Botanas', 'Guarniciones o Extras', 'Especialidades', 'Otros'];
           List<String> categorias = platillosAgrupados.keys.toList()
-            ..sort((a, b) => (orden.indexOf(a) == -1 ? 999 : orden.indexOf(a)).compareTo(orden.indexOf(b) == -1 ? 999 : orden.indexOf(b)));
+            ..sort((a, b) => (!orden.contains(a) ? 999 : orden.indexOf(a)).compareTo(!orden.contains(b) ? 999 : orden.indexOf(b)));
 
           return ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),

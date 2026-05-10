@@ -1,7 +1,7 @@
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+
 import '../../services/auth_service.dart';
 import 'perfil_restaurante_page.dart';
 import 'menu_restaurante_page.dart';
@@ -20,7 +20,7 @@ class PanelRestaurantePage extends StatefulWidget {
 }
 
 class _PanelRestaurantePageState extends State<PanelRestaurantePage> {
-  final String _uid = FirebaseAuth.instance.currentUser!.uid;
+  final String _uid = AuthService().usuarioActual!.uid;
   final RestauranteService _restauranteService = RestauranteService();
 
   @override
@@ -61,6 +61,8 @@ class _PanelRestaurantePageState extends State<PanelRestaurantePage> {
                   }
 
                   var data = snapshot.data!;
+                  String tituloOferta = data['promocion'] ?? '';
+                  bool tieneOferta = tituloOferta.isNotEmpty;
                   
                   return SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 30.0), 
@@ -85,9 +87,22 @@ class _PanelRestaurantePageState extends State<PanelRestaurantePage> {
                         ),
                         const SizedBox(height: 40),
                         
-                        BotonNavegacionPanel(titulo: 'Gestionar Menú', subtitulo: 'PLATILLOS Y PRECIOS', icono: Icons.local_pizza_outlined, colorIcono: const Color(0xFFF26B2A), destino: const MenuRestaurantePage()),
+                        BotonNavegacionPanel(
+                          titulo: 'Gestionar Menú', 
+                          subtitulo: 'PLATILLOS Y PRECIOS', 
+                          icono: Icons.local_pizza_outlined, 
+                          colorIcono: const Color(0xFFF26B2A), 
+                          destino: const MenuRestaurantePage()
+                        ),
                         const SizedBox(height: 20),
-                        BotonNavegacionPanel(titulo: 'Publicar Oferta', subtitulo: 'PROMO RELÁMPAGO', icono: Icons.local_offer_outlined, colorIcono: Colors.blue.shade400, destino: const PublicarOfertaPage()),
+                        
+                        BotonNavegacionPanel(
+                          titulo: tieneOferta ? 'Oferta Activa' : 'Publicar Oferta', 
+                          subtitulo: tieneOferta ? tituloOferta.toUpperCase() : 'PROMO RELÁMPAGO', 
+                          icono: tieneOferta ? Icons.local_fire_department_rounded : Icons.local_offer_outlined, 
+                          colorIcono: tieneOferta ? Colors.green.shade500 : Colors.blue.shade400, 
+                          destino: PublicarOfertaPage(datosOfertaActual: tieneOferta ? data : null)
+                        ),
                       ],
                     ),
                   );

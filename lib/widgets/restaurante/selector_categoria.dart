@@ -21,7 +21,7 @@ class SelectorCategoria extends StatelessWidget {
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 15, offset: const Offset(0, 5))],
       ),
       child: DropdownButtonFormField<String>(
-        value: valorActual,
+        initialValue: valorActual,
         icon: Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey.shade400),
         dropdownColor: Colors.white,
         borderRadius: BorderRadius.circular(24),

@@ -6,15 +6,34 @@ class RestauranteService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
-// 1. OBTENER DATOS EN TIEMPO REAL 
+  // 1. OBTENER DATOS
   Stream<Map<String, dynamic>?> streamDatosRestaurante(String uid) {
     return _db.collection('restaurantes').doc(uid).snapshots().map((doc) {
       if (doc.exists && doc.data() != null) {
-        return doc.data() as Map<String, dynamic>;
+        var data = doc.data() as Map<String, dynamic>;
+
+        // Limpieza oferta
+        String promo = data['promocion'] ?? '';
+        if (promo.isNotEmpty && data['promocion_fin'] != null) {
+          DateTime fin = (data['promocion_fin'] as Timestamp).toDate();
+          DateTime hoy = DateTime.now();
+
+          //Si ya supero el tiempo
+          if (hoy.isAfter(DateTime(fin.year, fin.month, fin.day, 23, 59, 59))) {
+            // Limpiar
+            data['promocion'] = '';
+            data['promocion_descripcion'] = '';
+            data['promocion_inicio'] = null;
+            data['promocion_fin'] = null;
+          }
+        }
+
+        return data;
       }
       return null;
     });
   }
+
   // 2. OBTENER DATOS UNA SOLA VEZ 
   Future<Map<String, dynamic>?> obtenerDatosPerfil(String uid) async {
     DocumentSnapshot doc = await _db.collection('restaurantes').doc(uid).get();
@@ -36,7 +55,7 @@ class RestauranteService {
   }) async {
     String urlFinal = fotoUrlExistente;
 
-    // Foto Nueva; Subir al Storabe
+    // Foto Nueva; Subir al Storage
     if (nuevaFoto != null) {
       final storageRef = _storage.ref().child('perfiles_restaurantes').child('$uid.jpg');
       await storageRef.putFile(nuevaFoto);
@@ -77,6 +96,7 @@ class RestauranteService {
   Future<void> eliminarOferta(String uid) async {
     await _db.collection('restaurantes').doc(uid).update({
       'promocion': '',
+      'promocion_descripcion': FieldValue.delete(), 
       'promocion_inicio': FieldValue.delete(),
       'promocion_fin': FieldValue.delete(),
     });
